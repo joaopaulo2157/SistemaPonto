@@ -1,206 +1,112 @@
-// ================= CONFIGURAÇÃO =================
-const API_URL = 'https://sistema-ponto-seven.vercel.app/api/ponto';
+// ================= FUNÇÕES DA API VERCEl (Frontend) =================
 
-// Variáveis globais
-let colaboradores = [];
-let registrosPonto = [];
-let trocasTurno = [];
-
-// ================= FUNÇÕES DE COMUNICAÇÃO =================
-async function chamarAPI(acao, dados = {}) {
-    try {
-        const url = `${API_URL}?acao=${acao}`;
-        const resposta = await fetch(url, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(dados)
-        });
-        
-        if (!resposta.ok) {
-            const erro = await resposta.text();
-            throw new Error(`HTTP ${resposta.status}: ${erro}`);
-        }
-        
-        const resultado = await resposta.json();
-        return resultado;
-    } catch (erro) {
-        console.error(`❌ Erro na API (${acao}):`, erro);
-        return { sucesso: false, mensagem: 'Erro de conexão: ' + erro.message };
-    }
-}
-
-// ================= COLABORADORES =================
-async function listarColaboradores() {
-    const resultado = await chamarAPI('listarColaboradores');
+/**
+ * Lista todos os projetos da Vercel
+ */
+async function listarProjetosVercel() {
+    const resultado = await chamarAPI('listarProjetos');
     if (resultado.sucesso) {
-        colaboradores = resultado.dados;
-        renderizarColaboradores();
+        console.log('📁 Projetos encontrados:', resultado.dados);
+        return resultado.dados;
     } else {
-        console.error('Erro ao listar colaboradores:', resultado.mensagem);
+        console.error('Erro ao listar projetos:', resultado.mensagem);
+        alert('❌ ' + resultado.mensagem);
+        return [];
     }
 }
 
-async function adicionarColaborador(dados) {
-    const resultado = await chamarAPI('adicionarColaborador', dados);
+/**
+ * Lista deployments de um projeto
+ */
+async function listarDeploymentsVercel(projectId, limit = 10) {
+    const resultado = await chamarAPI('listarDeployments', { projectId, limit });
     if (resultado.sucesso) {
-        alert('✅ Colaborador adicionado!');
-        await listarColaboradores();
-        await carregarEstatisticas();
+        console.log(`🚀 Deployments do projeto ${projectId}:`, resultado.dados);
+        return resultado.dados;
+    } else {
+        console.error('Erro ao listar deployments:', resultado.mensagem);
+        alert('❌ ' + resultado.mensagem);
+        return [];
+    }
+}
+
+/**
+ * Obtém detalhes de um deployment específico
+ */
+async function getDeploymentVercel(deploymentId) {
+    const resultado = await chamarAPI('getDeployment', { deploymentId });
+    if (resultado.sucesso) {
+        console.log(`📦 Deployment ${deploymentId}:`, resultado.dados);
+        return resultado.dados;
+    } else {
+        console.error('Erro ao obter deployment:', resultado.mensagem);
+        return null;
+    }
+}
+
+/**
+ * Cancela um deployment
+ */
+async function cancelDeploymentVercel(deploymentId) {
+    if (!confirm(`Tem certeza que deseja cancelar o deployment ${deploymentId}?`)) {
+        return false;
+    }
+    
+    const resultado = await chamarAPI('cancelDeployment', { deploymentId });
+    if (resultado.sucesso) {
+        alert('✅ Deployment cancelado com sucesso!');
         return true;
     } else {
-        alert('❌ ' + (resultado.mensagem || 'Erro ao adicionar'));
+        alert('❌ ' + resultado.mensagem);
         return false;
     }
 }
 
-async function editarColaborador(id, dados) {
-    const resultado = await chamarAPI('editarColaborador', { id, dadosColab: dados });
+/**
+ * Cria um novo deployment (para deploy automático)
+ */
+async function criarDeploymentVercel(projectId, files) {
+    const resultado = await chamarAPI('criarDeployment', { projectId, files });
     if (resultado.sucesso) {
-        alert('✅ Colaborador editado!');
-        await listarColaboradores();
+        alert('✅ Deployment criado com sucesso!');
+        console.log('Novo deployment:', resultado.dados);
+        return resultado.dados;
     } else {
-        alert('❌ ' + (resultado.mensagem || 'Erro ao editar'));
+        alert('❌ ' + resultado.mensagem);
+        return null;
     }
 }
 
-async function excluirColaborador(id) {
-    if (confirm('Tem certeza que deseja excluir este colaborador?')) {
-        const resultado = await chamarAPI('excluirColaborador', { id });
-        if (resultado.sucesso) {
-            alert('✅ Colaborador excluído!');
-            await listarColaboradores();
-            await carregarEstatisticas();
-        } else {
-            alert('❌ ' + (resultado.mensagem || 'Erro ao excluir'));
-        }
-    }
-}
-
-// ================= REGISTROS =================
-async function listarRegistros() {
-    const resultado = await chamarAPI('listarRegistros');
-    if (resultado.sucesso) {
-        registrosPonto = resultado.dados;
-        renderizarRegistros();
-    } else {
-        console.error('Erro ao listar registros:', resultado.mensagem);
-    }
-}
-
-async function registrarPonto(dados) {
-    const resultado = await chamarAPI('registrarPonto', dados);
-    if (resultado.sucesso) {
-        alert(resultado.mensagem);
-        await listarRegistros();
-        await carregarEstatisticas();
-        return true;
-    } else {
-        alert('❌ ' + (resultado.mensagem || 'Erro ao registrar ponto'));
-        return false;
-    }
-}
-
-// ================= BIOMETRIA =================
-async function verificarBiometria(hash) {
-    const resultado = await chamarAPI('verificarBiometria', { hash });
-    return resultado;
-}
-
-async function cadastrarBiometria(dados) {
-    const resultado = await chamarAPI('cadastrarBiometria', dados);
-    return resultado;
-}
-
-// ================= TROCAS =================
-async function listarTrocas() {
-    const resultado = await chamarAPI('listarTrocas');
-    if (resultado.sucesso) {
-        trocasTurno = resultado.dados;
-        renderizarTrocas();
-    } else {
-        console.error('Erro ao listar trocas:', resultado.mensagem);
-    }
-}
-
-async function registrarTroca(dados) {
-    const resultado = await chamarAPI('registrarTroca', dados);
-    if (resultado.sucesso) {
-        alert('🔄 Troca registrada!');
-        await listarTrocas();
-    } else {
-        alert('❌ ' + (resultado.mensagem || 'Erro ao registrar troca'));
-    }
-}
-
-// ================= ÁREA T.I =================
-async function loginTI(usuario, senha) {
-    const resultado = await chamarAPI('loginTI', { usuario, senha });
-    return resultado;
-}
-
-async function listarUsuariosTI() {
-    const resultado = await chamarAPI('listarUsuariosTI');
-    if (resultado.sucesso) {
-        renderizarUsuariosTI(resultado.dados);
-    }
-}
-
-async function adicionarUsuarioTI(usuario, senha, tipo) {
-    const resultado = await chamarAPI('adicionarUsuarioTI', { usuario, senha, tipo });
-    if (resultado.sucesso) {
-        alert('✅ Usuário adicionado!');
-        await listarUsuariosTI();
-    } else {
-        alert('❌ ' + (resultado.mensagem || 'Erro ao adicionar usuário'));
-    }
-}
-
-async function excluirUsuarioTI(usuario) {
-    if (confirm(`Tem certeza que deseja excluir o usuário ${usuario}?`)) {
-        const resultado = await chamarAPI('excluirUsuarioTI', { usuario });
-        if (resultado.sucesso) {
-            alert('✅ Usuário excluído!');
-            await listarUsuariosTI();
-        } else {
-            alert('❌ ' + (resultado.mensagem || 'Erro ao excluir usuário'));
-        }
-    }
-}
-
-// ================= ESTATÍSTICAS =================
-async function carregarEstatisticas() {
-    const resultado = await chamarAPI('estatisticas');
-    if (resultado.sucesso) {
-        const totalColab = document.getElementById('totalColab');
-        const registrosHoje = document.getElementById('registrosHoje');
-        
-        if (totalColab) totalColab.textContent = resultado.totalColaboradores || 0;
-        if (registrosHoje) registrosHoje.textContent = resultado.registrosHoje || 0;
-    } else {
-        console.error('Erro ao carregar estatísticas:', resultado.mensagem);
-    }
-}
-
-// ================= FUNÇÕES DE RENDERIZAÇÃO =================
-function renderizarColaboradores() {
-    const container = document.getElementById('colaboradoresList');
+/**
+ * Renderiza lista de projetos no painel T.I
+ */
+async function renderizarProjetosVercel() {
+    const container = document.getElementById('vercelProjectsList');
     if (!container) return;
     
-    if (!colaboradores || colaboradores.length === 0) {
-        container.innerHTML = '<div class="status status-info">Nenhum colaborador cadastrado</div>';
+    container.innerHTML = '<div class="status status-info">Carregando projetos...</div>';
+    
+    const projetos = await listarProjetosVercel();
+    
+    if (!projetos || projetos.length === 0) {
+        container.innerHTML = '<div class="status status-info">Nenhum projeto encontrado</div>';
         return;
     }
     
     let html = '';
-    colaboradores.forEach(c => {
+    projetos.forEach(projeto => {
         html += `
             <div class="card">
-                <div class="card-title">${escapeHtml(c.nome)}</div>
-                <div class="card-subtitle">Mat: ${escapeHtml(c.matricula)} • ${escapeHtml(c.cargo || '-')}</div>
-                <div class="card-detail">${escapeHtml(c.escola || '-')} • ${c.cargaHoraria || 160}h</div>
+                <div class="card-title">📁 ${escapeHtml(projeto.name)}</div>
+                <div class="card-subtitle">ID: ${escapeHtml(projeto.id)}</div>
+                <div class="card-detail">
+                    Framework: ${projeto.framework || 'N/A'} | 
+                    Criado em: ${new Date(projeto.createdAt).toLocaleDateString('pt-BR')}
+                </div>
                 <div class="card-actions">
-                    <button class="btn-small btn-primary" onclick="editarColaborador(${c.id})">✏️ Editar</button>
-                    <button class="btn-small btn-danger" onclick="excluirColaborador(${c.id})">❌ Excluir</button>
+                    <button class="btn-small btn-primary" onclick="verDeployments('${projeto.id}')">
+                        🚀 Ver Deployments
+                    </button>
                 </div>
             </div>
         `;
@@ -209,24 +115,51 @@ function renderizarColaboradores() {
     container.innerHTML = html;
 }
 
-function renderizarRegistros() {
-    const container = document.getElementById('registrosList');
+/**
+ * Renderiza lista de deployments
+ */
+async function renderizarDeploymentsVercel(projectId) {
+    const container = document.getElementById('vercelDeploymentsList');
     if (!container) return;
     
-    if (!registrosPonto || registrosPonto.length === 0) {
-        container.innerHTML = '<div class="status status-info">Nenhum registro de ponto encontrado</div>';
+    container.innerHTML = '<div class="status status-info">Carregando deployments...</div>';
+    
+    const deployments = await listarDeploymentsVercel(projectId);
+    
+    if (!deployments || deployments.length === 0) {
+        container.innerHTML = '<div class="status status-info">Nenhum deployment encontrado</div>';
         return;
     }
     
-    const registrosOrdenados = [...registrosPonto].reverse().slice(0, 50);
-    
     let html = '';
-    registrosOrdenados.forEach(r => {
+    deployments.forEach(deploy => {
+        const statusColor = deploy.readyState === 'READY' ? '#4caf50' : 
+                           deploy.readyState === 'ERROR' ? '#f44336' : '#ff9800';
+        
         html += `
             <div class="card">
-                <div class="card-title">${escapeHtml(r.nome)}</div>
-                <div class="card-subtitle">${escapeHtml(r.data)} • ${escapeHtml(r.entrada || '-')} ${r.saida ? '→ ' + escapeHtml(r.saida) : ''}</div>
-                <div class="card-detail">Tipo: ${escapeHtml(r.tipo || 'Manual')}</div>
+                <div class="card-title">
+                    🚀 Deployment #${escapeHtml(deploy.uid?.substring(0, 8))}
+                    <span style="color: ${statusColor}; font-size: 12px; margin-left: 10px;">
+                        ${deploy.readyState || 'PENDING'}
+                    </span>
+                </div>
+                <div class="card-subtitle">
+                    URL: <a href="https://${deploy.url}" target="_blank">${escapeHtml(deploy.url)}</a>
+                </div>
+                <div class="card-detail">
+                    Criado em: ${new Date(deploy.createdAt).toLocaleString('pt-BR')}
+                </div>
+                <div class="card-actions">
+                    <button class="btn-small btn-primary" onclick="verDetalhesDeployment('${deploy.uid}')">
+                        📋 Detalhes
+                    </button>
+                    ${deploy.readyState !== 'READY' ? `
+                        <button class="btn-small btn-danger" onclick="cancelarDeployment('${deploy.uid}')">
+                            ❌ Cancelar
+                        </button>
+                    ` : ''}
+                </div>
             </div>
         `;
     });
@@ -234,244 +167,83 @@ function renderizarRegistros() {
     container.innerHTML = html;
 }
 
-function renderizarTrocas() {
-    const container = document.getElementById('trocasList');
-    if (!container) return;
+// Funções auxiliares para a UI
+async function verDeployments(projectId) {
+    // Salvar projectId atual
+    window.currentProjectId = projectId;
     
-    if (!trocasTurno || trocasTurno.length === 0) {
-        container.innerHTML = '<div class="status status-info">Nenhuma troca de turno registrada</div>';
-        return;
+    // Mostrar área de deployments
+    const deploymentsSection = document.getElementById('vercelDeploymentsSection');
+    if (deploymentsSection) {
+        deploymentsSection.style.display = 'block';
+        await renderizarDeploymentsVercel(projectId);
     }
-    
-    let html = '';
-    trocasTurno.slice().reverse().forEach(t => {
-        html += `
-            <div class="card">
-                <div class="card-title">🔄 Troca de Turno</div>
-                <div class="card-subtitle">${escapeHtml(t.saidaNome)} → ${escapeHtml(t.entradaNome)}</div>
-                <div class="card-detail">Data: ${escapeHtml(t.data)} • Motivo: ${escapeHtml(t.motivo)}</div>
-            </div>
-        `;
-    });
-    
-    container.innerHTML = html;
 }
 
-function renderizarUsuariosTI(usuarios) {
-    const container = document.getElementById('usuariosTIList');
-    if (!container) return;
-    
-    if (!usuarios || usuarios.length === 0) {
-        container.innerHTML = '<div class="status status-info">Nenhum usuário cadastrado</div>';
-        return;
+async function verDetalhesDeployment(deploymentId) {
+    const deployment = await getDeploymentVercel(deploymentId);
+    if (deployment) {
+        alert(`📦 Detalhes do Deployment:\n\n` +
+              `ID: ${deployment.uid}\n` +
+              `URL: https://${deployment.url}\n` +
+              `Status: ${deployment.readyState}\n` +
+              `Criado: ${new Date(deployment.createdAt).toLocaleString('pt-BR')}\n` +
+              `Projeto: ${deployment.name}`);
     }
+}
+
+async function cancelarDeployment(deploymentId) {
+    await cancelDeploymentVercel(deploymentId);
+    // Recarregar lista
+    if (window.currentProjectId) {
+        await renderizarDeploymentsVercel(window.currentProjectId);
+    }
+}
+
+/**
+ * Adicionar seção da Vercel no painel T.I
+ */
+function adicionarSecaoVercelNoTI() {
+    const tiPainel = document.getElementById('tiPainel');
+    if (!tiPainel) return;
     
-    let html = '';
-    usuarios.forEach(u => {
-        html += `
-            <div class="card" style="margin-top: 10px;">
-                <div class="card-title">${escapeHtml(u.usuario)}</div>
-                <div class="card-subtitle">Tipo: ${escapeHtml(u.tipo)}</div>
-                <button class="btn-small btn-danger" onclick="excluirUsuarioTI('${escapeHtml(u.usuario)}')">Excluir</button>
+    const vercelSection = `
+        <div class="card" style="margin-top: 20px;">
+            <div class="card-title">🚀 Gerenciamento Vercel</div>
+            <div id="vercelProjectsList" style="margin: 15px 0;">
+                <div class="status status-info">Carregando projetos...</div>
             </div>
-        `;
-    });
+            <div id="vercelDeploymentsSection" style="display: none;">
+                <h4 style="margin: 15px 0 10px;">📦 Deployments</h4>
+                <div id="vercelDeploymentsList"></div>
+                <button class="btn-small btn-primary" onclick="voltarParaProjetos()" style="margin-top: 10px;">
+                    ← Voltar para Projetos
+                </button>
+            </div>
+            <button class="btn-small btn-primary" onclick="atualizarProjetosVercel()" style="margin-top: 10px;">
+                🔄 Atualizar Projetos
+            </button>
+        </div>
+    `;
     
-    container.innerHTML = html;
+    tiPainel.insertAdjacentHTML('beforeend', vercelSection);
 }
 
-// ================= FUNÇÕES AUXILIARES =================
-function escapeHtml(texto) {
-    if (!texto) return '';
-    const div = document.createElement('div');
-    div.textContent = texto;
-    return div.innerHTML;
+function voltarParaProjetos() {
+    document.getElementById('vercelDeploymentsSection').style.display = 'none';
+    renderizarProjetosVercel();
 }
 
-// ================= FOLHA DE PONTO =================
-async function gerarFolhaPonto(mes, ano) {
-    const resultado = await chamarAPI('gerarFolhaPonto', { mes, ano });
+async function atualizarProjetosVercel() {
+    await renderizarProjetosVercel();
+}
+
+// Adicionar função de teste de conexão com API Vercel
+async function testarConexaoVercel() {
+    const resultado = await chamarAPI('listarProjetos');
     if (resultado.sucesso) {
-        let html = gerarHTMLFolha(resultado.dados, mes, ano);
-        const janela = window.open('', '_blank');
-        janela.document.write(html);
-        janela.document.close();
-        janela.print();
+        alert('✅ Conexão com API Vercel estabelecida!\nProjetos encontrados: ' + (resultado.dados?.length || 0));
     } else {
-        alert('❌ ' + (resultado.mensagem || 'Erro ao gerar folha de ponto'));
+        alert('❌ Erro na conexão: ' + resultado.mensagem);
     }
-}
-
-function gerarHTMLFolha(folhas, mes, ano) {
-    const meses = ['Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho', 'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'];
-    const nomeMes = meses[mes - 1];
-    
-    let html = `
-        <!DOCTYPE html>
-        <html>
-        <head>
-            <meta charset="UTF-8">
-            <title>Folha de Ponto - ${nomeMes}/${ano}</title>
-            <style>
-                * { margin: 0; padding: 0; box-sizing: border-box; }
-                body { font-family: Arial, sans-serif; padding: 30px; background: #f5f5f5; }
-                .container { max-width: 1200px; margin: 0 auto; background: white; padding: 30px; border-radius: 20px; box-shadow: 0 10px 30px rgba(0,0,0,0.1); }
-                h1 { text-align: center; color: #667eea; margin-bottom: 10px; }
-                .subtitle { text-align: center; color: #666; margin-bottom: 30px; }
-                .folha { margin-bottom: 50px; page-break-after: always; }
-                h2 { color: #333; margin: 20px 0 10px; border-left: 5px solid #667eea; padding-left: 15px; }
-                table { width: 100%; border-collapse: collapse; margin: 20px 0; }
-                th { background: #667eea; color: white; padding: 12px; font-weight: 600; }
-                td { border: 1px solid #ddd; padding: 10px; text-align: center; }
-                tr:nth-child(even) { background: #f9f9f9; }
-                .total { font-weight: bold; background: #e8f5e9; }
-                .assinatura { margin-top: 40px; text-align: center; border-top: 2px solid #ccc; padding-top: 20px; }
-                .info { margin: 10px 0; color: #666; }
-                .footer { text-align: center; margin-top: 30px; color: #999; font-size: 12px; }
-                @media print {
-                    body { padding: 0; background: white; }
-                    .container { padding: 20px; box-shadow: none; }
-                    .page-break { page-break-after: always; }
-                }
-            </style>
-        </head>
-        <body>
-            <div class="container">
-                <h1>📋 SISTEMA DE PONTO ELETRÔNICO</h1>
-                <div class="subtitle">Folha de Ponto - ${nomeMes}/${ano}</div>
-    `;
-    
-    folhas.forEach(f => {
-        // Calcular total de horas
-        let totalHoras = 0;
-        f.registros.forEach(r => {
-            if (r.entrada && r.saida) {
-                const entradaHora = parseInt(r.entrada.split(':')[0]);
-                const entradaMin = parseInt(r.entrada.split(':')[1]);
-                const saidaHora = parseInt(r.saida.split(':')[0]);
-                const saidaMin = parseInt(r.saida.split(':')[1]);
-                const horas = (saidaHora - entradaHora) + (saidaMin - entradaMin) / 60;
-                totalHoras += horas;
-            }
-        });
-        
-        const horasExtras = totalHoras > f.cargaHoraria ? (totalHoras - f.cargaHoraria).toFixed(2) : 0;
-        const horasFaltantes = totalHoras < f.cargaHoraria ? (f.cargaHoraria - totalHoras).toFixed(2) : 0;
-        
-        html += `
-            <div class="folha">
-                <h2>👤 ${escapeHtml(f.colaborador)}</h2>
-                <div class="info">
-                    <strong>Matrícula:</strong> ${escapeHtml(f.matricula)} | 
-                    <strong>Escola:</strong> ${escapeHtml(f.escola)} | 
-                    <strong>Cargo:</strong> ${escapeHtml(f.cargo)} |
-                    <strong>Carga Horária Mensal:</strong> ${f.cargaHoraria}h
-                </div>
-                
-                <table>
-                    <thead>
-                        <tr><th>Dia</th><th>Data</th><th>Entrada</th><th>Saída</th><th>Horas</th><th>Observação</th></tr>
-                    </thead>
-                    <tbody>
-        `;
-        
-        // Criar mapa de registros por dia
-        const registrosPorDia = {};
-        f.registros.forEach(r => {
-            const dia = r.data.split('/')[0];
-            registrosPorDia[dia] = r;
-        });
-        
-        // Gerar todos os dias do mês
-        const diasNoMes = new Date(ano, mes, 0).getDate();
-        for (let d = 1; d <= diasNoMes; d++) {
-            const dia = d.toString().padStart(2, '0');
-            const registro = registrosPorDia[dia];
-            const dataFormatada = `${dia}/${mes.toString().padStart(2, '0')}/${ano}`;
-            
-            let horasDia = 0;
-            if (registro && registro.entrada && registro.saida) {
-                const entradaHora = parseInt(registro.entrada.split(':')[0]);
-                const entradaMin = parseInt(registro.entrada.split(':')[1]);
-                const saidaHora = parseInt(registro.saida.split(':')[0]);
-                const saidaMin = parseInt(registro.saida.split(':')[1]);
-                horasDia = (saidaHora - entradaHora) + (saidaMin - entradaMin) / 60;
-            }
-            
-            html += `
-                <tr>
-                    <td>${dia}</td>
-                    <td>${dataFormatada}</td>
-                    <td>${registro?.entrada || '-'}</td>
-                    <td>${registro?.saida || '-'}</td>
-                    <td>${horasDia > 0 ? horasDia.toFixed(2) + 'h' : '-'}</td>
-                    <td>${escapeHtml(registro?.observacao || '-')}</td>
-                </tr>
-            `;
-        }
-        
-        html += `
-                    <tr class="total">
-                        <td colspan="4"><strong>TOTAL NO MÊS</strong></td>
-                        <td><strong>${totalHoras.toFixed(2)}h</strong></td>
-                        <td></td>
-                    </tr>
-                </tbody>
-                </table>
-                
-                <div class="info">
-                    <strong>📊 Resumo:</strong><br>
-                    • Horas Trabalhadas: ${totalHoras.toFixed(2)}h<br>
-                    • Carga Horária Contratada: ${f.cargaHoraria}h<br>
-                    ${horasExtras > 0 ? `• Horas Extras: +${horasExtras}h` : ''}
-                    ${horasFaltantes > 0 ? `• Horas Pendentes: -${horasFaltantes}h` : ''}
-                </div>
-                
-                <div class="assinatura">
-                    <p>____________________________________</p>
-                    <p>Assinatura do Diretor(a)</p>
-                    <p>${escapeHtml(f.escola)}</p>
-                </div>
-            </div>
-        `;
-    });
-    
-    html += `
-                <div class="footer">
-                    Sistema de Ponto Eletrônico - Desenvolvido por João Paulo da Silva de Farias<br>
-                    Documento gerado em ${new Date().toLocaleString('pt-BR')}
-                </div>
-            </div>
-        </body>
-        </html>
-    `;
-    
-    return html;
-}
-
-// ================= INICIALIZAÇÃO =================
-async function inicializarApp() {
-    console.log('🚀 Inicializando app...');
-    
-    // Verificar conexão com a API
-    const teste = await chamarAPI('estatisticas');
-    if (teste.sucesso) {
-        console.log('✅ API conectada com sucesso!');
-    } else {
-        console.warn('⚠️ Erro na conexão com API:', teste.mensagem);
-    }
-    
-    await carregarEstatisticas();
-    await listarColaboradores();
-    await listarRegistros();
-    await listarTrocas();
-    
-    console.log('✅ App inicializado!');
-}
-
-// Aguardar DOM carregar
-if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', inicializarApp);
-} else {
-    inicializarApp();
 }

@@ -28,9 +28,9 @@ let biometria = [
 // Função auxiliar para CORS
 function setCorsHeaders(res) {
   const allowedOrigins = [
-    'https://ponto-app.vercel.app',
+    'https://sistema-ponto-seven.vercel.app',
     'http://localhost:3000',
-    'https://ponto-app-git-main.vercel.app'
+    'https://sistema-ponto-seven.vercel.app'
   ];
   const origin = req.headers.origin;
   if (allowedOrigins.includes(origin)) {

@@ -1,19 +1,12 @@
 // api/ponto.js
-// Sistema de Ponto Eletrônico - Backend API com Integração Vercel
+// Sistema de Ponto Eletrônico - Backend API com Integração REAL Vercel
 
 // ================= CONFIGURAÇÕES =================
-const VERCEL_API_KEY = 'prj_c70DBh9jjLO7Cq4B85Vy1c72xJ88';
-const TEAM_ID = '';
-const PROJECT_ID = 'sistema-ponto';
+const VERCEL_TOKEN = process.env.VERCEL_TOKEN;
+const TEAM_ID = process.env.VERCEL_TEAM_ID || '';
 
 // URLs da API Vercel
 const VERCEL_API_URL = 'https://api.vercel.com';
-
-// Headers padrão para autenticação
-const authHeaders = {
-  'Authorization': `Bearer ${VERCEL_API_KEY}`,
-  'Content-Type': 'application/json'
-};
 
 // ================= DADOS DO SISTEMA =================
 let colaboradores = [
@@ -33,8 +26,13 @@ let usuariosTI = [
 ];
 let biometria = [];
 
-// ================= FUNÇÕES DA API VERCEl =================
+// ================= FUNÇÕES DA API VERCEl REAL =================
 async function chamarVercelAPI(endpoint, method = 'GET', body = null) {
+  if (!VERCEL_TOKEN) {
+    console.error('VERCEL_TOKEN não configurado nas variáveis de ambiente');
+    return { success: false, error: 'Token Vercel não configurado. Adicione VERCEL_TOKEN nas variáveis de ambiente.' };
+  }
+
   try {
     let url = `${VERCEL_API_URL}${endpoint}`;
     
@@ -44,19 +42,23 @@ async function chamarVercelAPI(endpoint, method = 'GET', body = null) {
     
     const options = {
       method,
-      headers: authHeaders
+      headers: {
+        'Authorization': `Bearer ${VERCEL_TOKEN}`,
+        'Content-Type': 'application/json'
+      }
     };
     
     if (body && (method === 'POST' || method === 'PUT' || method === 'PATCH')) {
       options.body = JSON.stringify(body);
     }
     
+    console.log(`📡 Chamando Vercel API: ${method} ${url}`);
     const response = await fetch(url, options);
     const data = await response.json();
     
     if (!response.ok) {
-      console.error('Erro na API Vercel:', data);
-      return { success: false, error: data.error?.message || 'Erro na requisição' };
+      console.error('Erro na API Vercel:', response.status, data);
+      return { success: false, error: data.error?.message || `HTTP ${response.status}: ${JSON.stringify(data)}` };
     }
     
     return { success: true, data };
@@ -70,9 +72,16 @@ async function listarProjetos() {
   return await chamarVercelAPI('/v1/projects');
 }
 
-async function listarDeployments(projectId, limit = 10) {
-  const endpoint = `/v6/deployments${projectId ? `?projectId=${projectId}&limit=${limit}` : `?limit=${limit}`}`;
+async function listarDeployments(projectId, limit = 20) {
+  let endpoint = `/v6/deployments?limit=${limit}`;
+  if (projectId) {
+    endpoint += `&projectId=${projectId}`;
+  }
   return await chamarVercelAPI(endpoint);
+}
+
+async function getDeployment(deploymentId) {
+  return await chamarVercelAPI(`/v6/deployments/${deploymentId}`);
 }
 
 async function cancelDeployment(deploymentId) {
@@ -120,13 +129,14 @@ export default async function handler(req, res) {
   console.log(`📱 API chamada: ${acao}`);
 
   try {
-    // ================= FUNÇÕES DA API VERCEl =================
+    // ================= FUNÇÕES DA API VERCEl REAL =================
+    
     if (acao === 'listarProjetos') {
       const resultado = await listarProjetos();
       if (resultado.success) {
         return res.status(200).json({ sucesso: true, dados: resultado.data.projects });
       }
-      return res.status(500).json({ sucesso: false, mensagem: resultado.error });
+      return res.status(500).json({ sucesso: false, mensagem: resultado.error, detalhes: 'Verifique se o token Vercel está configurado corretamente.' });
     }
     
     if (acao === 'listarDeployments') {
@@ -138,6 +148,18 @@ export default async function handler(req, res) {
       return res.status(500).json({ sucesso: false, mensagem: resultado.error });
     }
     
+    if (acao === 'getDeployment') {
+      const { deploymentId } = dados;
+      if (!deploymentId) {
+        return res.status(400).json({ sucesso: false, mensagem: 'deploymentId é obrigatório' });
+      }
+      const resultado = await getDeployment(deploymentId);
+      if (resultado.success) {
+        return res.status(200).json({ sucesso: true, dados: resultado.data });
+      }
+      return res.status(500).json({ sucesso: false, mensagem: resultado.error });
+    }
+    
     if (acao === 'cancelDeployment') {
       const { deploymentId } = dados;
       if (!deploymentId) {
@@ -145,14 +167,13 @@ export default async function handler(req, res) {
       }
       const resultado = await cancelDeployment(deploymentId);
       if (resultado.success) {
-        return res.status(200).json({ sucesso: true, mensagem: 'Deployment cancelado!' });
+        return res.status(200).json({ sucesso: true, mensagem: '✅ Deployment cancelado com sucesso!' });
       }
       return res.status(500).json({ sucesso: false, mensagem: resultado.error });
     }
 
     // ================= FUNÇÕES DO SISTEMA DE PONTO =================
     
-    // Colaboradores
     if (acao === 'listarColaboradores') {
       return res.status(200).json({ sucesso: true, dados: colaboradores });
     }
@@ -199,7 +220,6 @@ export default async function handler(req, res) {
       return res.status(200).json({ sucesso: true, mensagem: '✅ Colaborador excluído!' });
     }
 
-    // Registros
     if (acao === 'listarRegistros') {
       return res.status(200).json({ sucesso: true, dados: registrosPonto });
     }
@@ -242,7 +262,6 @@ export default async function handler(req, res) {
       return res.status(400).json({ sucesso: false, mensagem: 'Operação inválida!' });
     }
 
-    // Biometria
     if (acao === 'verificarBiometria') {
       const { hash } = dados;
       const encontrado = biometria.find(b => b.hash === hash);
@@ -273,7 +292,6 @@ export default async function handler(req, res) {
       return res.status(200).json({ sucesso: true, mensagem: '✅ Biometria cadastrada!' });
     }
 
-    // Trocas
     if (acao === 'listarTrocas') {
       return res.status(200).json({ sucesso: true, dados: trocasTurno });
     }
@@ -299,7 +317,6 @@ export default async function handler(req, res) {
       return res.status(200).json({ sucesso: true, mensagem: '🔄 Troca registrada!' });
     }
 
-    // Usuários TI
     if (acao === 'loginTI') {
       const { usuario, senha } = dados;
       const user = usuariosTI.find(u => u.usuario === usuario && u.senha === senha);
@@ -339,7 +356,6 @@ export default async function handler(req, res) {
       return res.status(200).json({ sucesso: true, mensagem: '✅ Usuário excluído!' });
     }
 
-    // Estatísticas
     if (acao === 'estatisticas') {
       const hoje = new Date().toLocaleDateString('pt-BR');
       const registrosHoje = registrosPonto.filter(r => r.data === hoje).length;
@@ -350,7 +366,6 @@ export default async function handler(req, res) {
       });
     }
 
-    // Folha de ponto
     if (acao === 'gerarFolhaPonto') {
       const { mes, ano } = dados;
       
@@ -393,7 +408,6 @@ export default async function handler(req, res) {
       return res.status(200).json({ sucesso: true, dados: folhas, mes, ano });
     }
 
-    // Ação não encontrada
     return res.status(404).json({ 
       sucesso: false, 
       mensagem: `Ação '${acao}' não encontrada` 

@@ -1,5 +1,5 @@
 // api/ponto.js
-// Sistema de Ponto Eletrônico - Backend API com Integração REAL Vercel
+// Sistema de Ponto Eletrônico - Backend API (CommonJS)
 
 // ================= CONFIGURAÇÕES =================
 const VERCEL_TOKEN = process.env.VERCEL_TOKEN;
@@ -26,11 +26,11 @@ let usuariosTI = [
 ];
 let biometria = [];
 
-// ================= FUNÇÕES DA API VERCEl REAL =================
+// ================= FUNÇÕES DA API VERCEl =================
 async function chamarVercelAPI(endpoint, method = 'GET', body = null) {
   if (!VERCEL_TOKEN) {
-    console.error('VERCEL_TOKEN não configurado nas variáveis de ambiente');
-    return { success: false, error: 'Token Vercel não configurado. Adicione VERCEL_TOKEN nas variáveis de ambiente.' };
+    console.error('VERCEL_TOKEN não configurado');
+    return { success: false, error: 'Token Vercel não configurado' };
   }
 
   try {
@@ -52,18 +52,15 @@ async function chamarVercelAPI(endpoint, method = 'GET', body = null) {
       options.body = JSON.stringify(body);
     }
     
-    console.log(`📡 Chamando Vercel API: ${method} ${url}`);
     const response = await fetch(url, options);
     const data = await response.json();
     
     if (!response.ok) {
-      console.error('Erro na API Vercel:', response.status, data);
-      return { success: false, error: data.error?.message || `HTTP ${response.status}: ${JSON.stringify(data)}` };
+      return { success: false, error: data.error?.message || `HTTP ${response.status}` };
     }
     
     return { success: true, data };
   } catch (error) {
-    console.error('Erro ao chamar API Vercel:', error);
     return { success: false, error: error.message };
   }
 }
@@ -80,10 +77,6 @@ async function listarDeployments(projectId, limit = 20) {
   return await chamarVercelAPI(endpoint);
 }
 
-async function getDeployment(deploymentId) {
-  return await chamarVercelAPI(`/v6/deployments/${deploymentId}`);
-}
-
 async function cancelDeployment(deploymentId) {
   return await chamarVercelAPI(`/v12/deployments/${deploymentId}/cancel`, 'PATCH');
 }
@@ -93,8 +86,7 @@ function setCorsHeaders(res, origin) {
   const allowedOrigins = [
     'https://ponto-app.vercel.app',
     'https://sistema-ponto-seven.vercel.app',
-    'http://localhost:3000',
-    'https://ponto-app-git-main.vercel.app'
+    'http://localhost:3000'
   ];
   
   if (origin && allowedOrigins.includes(origin)) {
@@ -109,7 +101,7 @@ function setCorsHeaders(res, origin) {
 }
 
 // ================= HANDLER PRINCIPAL =================
-export default async function handler(req, res) {
+module.exports = async function handler(req, res) {
   // Configurar CORS
   setCorsHeaders(res, req.headers.origin);
 
@@ -118,7 +110,7 @@ export default async function handler(req, res) {
     return res.status(200).end();
   }
 
-  // Apenas POST é permitido para este endpoint
+  // Apenas POST é permitido
   if (req.method !== 'POST') {
     return res.status(405).json({ sucesso: false, mensagem: 'Método não permitido. Use POST.' });
   }
@@ -126,17 +118,14 @@ export default async function handler(req, res) {
   const { acao } = req.query;
   const dados = req.body;
 
-  console.log(`📱 API chamada: ${acao}`);
-
   try {
-    // ================= FUNÇÕES DA API VERCEl REAL =================
-    
+    // ================= API VERCEl =================
     if (acao === 'listarProjetos') {
       const resultado = await listarProjetos();
       if (resultado.success) {
         return res.status(200).json({ sucesso: true, dados: resultado.data.projects });
       }
-      return res.status(500).json({ sucesso: false, mensagem: resultado.error, detalhes: 'Verifique se o token Vercel está configurado corretamente.' });
+      return res.status(500).json({ sucesso: false, mensagem: resultado.error });
     }
     
     if (acao === 'listarDeployments') {
@@ -148,18 +137,6 @@ export default async function handler(req, res) {
       return res.status(500).json({ sucesso: false, mensagem: resultado.error });
     }
     
-    if (acao === 'getDeployment') {
-      const { deploymentId } = dados;
-      if (!deploymentId) {
-        return res.status(400).json({ sucesso: false, mensagem: 'deploymentId é obrigatório' });
-      }
-      const resultado = await getDeployment(deploymentId);
-      if (resultado.success) {
-        return res.status(200).json({ sucesso: true, dados: resultado.data });
-      }
-      return res.status(500).json({ sucesso: false, mensagem: resultado.error });
-    }
-    
     if (acao === 'cancelDeployment') {
       const { deploymentId } = dados;
       if (!deploymentId) {
@@ -167,13 +144,12 @@ export default async function handler(req, res) {
       }
       const resultado = await cancelDeployment(deploymentId);
       if (resultado.success) {
-        return res.status(200).json({ sucesso: true, mensagem: '✅ Deployment cancelado com sucesso!' });
+        return res.status(200).json({ sucesso: true, mensagem: '✅ Deployment cancelado!' });
       }
       return res.status(500).json({ sucesso: false, mensagem: resultado.error });
     }
 
-    // ================= FUNÇÕES DO SISTEMA DE PONTO =================
-    
+    // ================= SISTEMA DE PONTO =================
     if (acao === 'listarColaboradores') {
       return res.status(200).json({ sucesso: true, dados: colaboradores });
     }
@@ -414,11 +390,11 @@ export default async function handler(req, res) {
     });
 
   } catch (error) {
-    console.error('❌ Erro na API:', error);
+    console.error('❌ Erro:', error);
     return res.status(500).json({ 
       sucesso: false, 
       mensagem: 'Erro interno no servidor', 
       erro: error.message 
     });
   }
-}
+};

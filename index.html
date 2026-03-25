@@ -217,7 +217,9 @@ function gerarHTMLFolha(folhas, mes, ano) {
     `;
   });
   
-  html += `</body></html>`;
+  html += `
+    <script src="frontend.js"></script>
+    </body></html>`;
   return html;
 }
 

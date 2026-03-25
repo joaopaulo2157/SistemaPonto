@@ -1,12 +1,5 @@
 // api/ponto.js
-// Sistema de Ponto Eletrônico - Backend API (CommonJS)
-
-// ================= CONFIGURAÇÕES =================
-const VERCEL_TOKEN = process.env.VERCEL_TOKEN;
-const TEAM_ID = process.env.VERCEL_TEAM_ID || '';
-
-// URLs da API Vercel
-const VERCEL_API_URL = 'https://api.vercel.com';
+// Sistema de Ponto Eletrônico - Backend API
 
 // ================= DADOS DO SISTEMA =================
 let colaboradores = [
@@ -15,141 +8,56 @@ let colaboradores = [
   { id: 3, nome: "Pedro Souza", matricula: "1003", cargo: "Diretor", departamento: "Administração", escola: "Escola Municipal", cargaHoraria: 160, status: "Ativo" }
 ];
 
-let registrosPonto = [
-  { id: 1, matricula: "1001", nome: "João Silva", data: new Date().toLocaleDateString('pt-BR'), entrada: "08:00", saida: "", tipo: "Facial", observacao: "" },
-  { id: 2, matricula: "1002", nome: "Maria Santos", data: new Date().toLocaleDateString('pt-BR'), entrada: "07:30", saida: "", tipo: "Manual", observacao: "" }
-];
-
+let registrosPonto = [];
 let trocasTurno = [];
 let usuariosTI = [
   { usuario: "admin", senha: "ti@2024", tipo: "Master" }
 ];
 let biometria = [];
 
-// ================= FUNÇÕES DA API VERCEl =================
-async function chamarVercelAPI(endpoint, method = 'GET', body = null) {
-  if (!VERCEL_TOKEN) {
-    console.error('VERCEL_TOKEN não configurado');
-    return { success: false, error: 'Token Vercel não configurado' };
-  }
-
-  try {
-    let url = `${VERCEL_API_URL}${endpoint}`;
-    
-    if (TEAM_ID && !url.includes('teamId=')) {
-      url += (url.includes('?') ? '&' : '?') + `teamId=${TEAM_ID}`;
-    }
-    
-    const options = {
-      method,
-      headers: {
-        'Authorization': `Bearer ${VERCEL_TOKEN}`,
-        'Content-Type': 'application/json'
-      }
-    };
-    
-    if (body && (method === 'POST' || method === 'PUT' || method === 'PATCH')) {
-      options.body = JSON.stringify(body);
-    }
-    
-    const response = await fetch(url, options);
-    const data = await response.json();
-    
-    if (!response.ok) {
-      return { success: false, error: data.error?.message || `HTTP ${response.status}` };
-    }
-    
-    return { success: true, data };
-  } catch (error) {
-    return { success: false, error: error.message };
-  }
-}
-
-async function listarProjetos() {
-  return await chamarVercelAPI('/v1/projects');
-}
-
-async function listarDeployments(projectId, limit = 20) {
-  let endpoint = `/v6/deployments?limit=${limit}`;
-  if (projectId) {
-    endpoint += `&projectId=${projectId}`;
-  }
-  return await chamarVercelAPI(endpoint);
-}
-
-async function cancelDeployment(deploymentId) {
-  return await chamarVercelAPI(`/v12/deployments/${deploymentId}/cancel`, 'PATCH');
-}
-
-// ================= FUNÇÃO CORS =================
-function setCorsHeaders(res, origin) {
-  const allowedOrigins = [
-    'https://ponto-app.vercel.app',
-    'https://sistema-ponto-seven.vercel.app',
-    'http://localhost:3000'
-  ];
-  
-  if (origin && allowedOrigins.includes(origin)) {
-    res.setHeader('Access-Control-Allow-Origin', origin);
-  } else {
-    res.setHeader('Access-Control-Allow-Origin', '*');
-  }
-  
-  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
-  res.setHeader('Access-Control-Max-Age', '86400');
-}
-
 // ================= HANDLER PRINCIPAL =================
-module.exports = async function handler(req, res) {
-  // Configurar CORS
-  setCorsHeaders(res, req.headers.origin);
+export default async function handler(req, res) {
+  // CORS
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
 
-  // Responder preflight (OPTIONS)
+  // OPTIONS
   if (req.method === 'OPTIONS') {
     return res.status(200).end();
   }
 
-  // Apenas POST é permitido
+  // GET - Teste rápido
+  if (req.method === 'GET') {
+    return res.status(200).json({
+      sucesso: true,
+      mensagem: 'API do Ponto Eletrônico funcionando!',
+      endpoints: [
+        'POST ?acao=estatisticas',
+        'POST ?acao=listarColaboradores',
+        'POST ?acao=adicionarColaborador',
+        'POST ?acao=editarColaborador',
+        'POST ?acao=excluirColaborador',
+        'POST ?acao=listarRegistros',
+        'POST ?acao=registrarPonto',
+        'POST ?acao=loginTI',
+        'POST ?acao=listarUsuariosTI',
+        'POST ?acao=listarProjetos',
+        'POST ?acao=listarDeployments'
+      ]
+    });
+  }
+
+  // Apenas POST para ações
   if (req.method !== 'POST') {
-    return res.status(405).json({ sucesso: false, mensagem: 'Método não permitido. Use POST.' });
+    return res.status(405).json({ sucesso: false, mensagem: 'Use POST' });
   }
 
   const { acao } = req.query;
   const dados = req.body;
 
   try {
-    // ================= API VERCEl =================
-    if (acao === 'listarProjetos') {
-      const resultado = await listarProjetos();
-      if (resultado.success) {
-        return res.status(200).json({ sucesso: true, dados: resultado.data.projects });
-      }
-      return res.status(500).json({ sucesso: false, mensagem: resultado.error });
-    }
-    
-    if (acao === 'listarDeployments') {
-      const { projectId, limit } = dados;
-      const resultado = await listarDeployments(projectId, limit);
-      if (resultado.success) {
-        return res.status(200).json({ sucesso: true, dados: resultado.data.deployments });
-      }
-      return res.status(500).json({ sucesso: false, mensagem: resultado.error });
-    }
-    
-    if (acao === 'cancelDeployment') {
-      const { deploymentId } = dados;
-      if (!deploymentId) {
-        return res.status(400).json({ sucesso: false, mensagem: 'deploymentId é obrigatório' });
-      }
-      const resultado = await cancelDeployment(deploymentId);
-      if (resultado.success) {
-        return res.status(200).json({ sucesso: true, mensagem: '✅ Deployment cancelado!' });
-      }
-      return res.status(500).json({ sucesso: false, mensagem: resultado.error });
-    }
-
-    // ================= SISTEMA DE PONTO =================
+    // ================= COLABORADORES =================
     if (acao === 'listarColaboradores') {
       return res.status(200).json({ sucesso: true, dados: colaboradores });
     }
@@ -158,22 +66,13 @@ module.exports = async function handler(req, res) {
       const { nome, matricula, cargo, departamento, escola, cargaHoraria } = dados;
       
       if (!nome || !matricula) {
-        return res.status(400).json({ sucesso: false, mensagem: 'Nome e matrícula são obrigatórios!' });
+        return res.status(400).json({ sucesso: false, mensagem: 'Nome e matrícula obrigatórios!' });
       }
       
       const id = Date.now();
-      const novoColab = { 
-        id, 
-        nome, 
-        matricula, 
-        cargo: cargo || '', 
-        departamento: departamento || '', 
-        escola: escola || '', 
-        cargaHoraria: cargaHoraria || 160, 
-        status: 'Ativo' 
-      };
-      colaboradores.push(novoColab);
-      return res.status(200).json({ sucesso: true, mensagem: '✅ Colaborador adicionado!', dados: novoColab });
+      const novo = { id, nome, matricula, cargo: cargo || '', departamento: departamento || '', escola: escola || '', cargaHoraria: cargaHoraria || 160, status: 'Ativo' };
+      colaboradores.push(novo);
+      return res.status(200).json({ sucesso: true, mensagem: '✅ Colaborador adicionado!' });
     }
 
     if (acao === 'editarColaborador') {
@@ -188,111 +87,47 @@ module.exports = async function handler(req, res) {
 
     if (acao === 'excluirColaborador') {
       const { id } = dados;
-      const novoColaboradores = colaboradores.filter(c => c.id != id);
-      if (novoColaboradores.length === colaboradores.length) {
+      const novos = colaboradores.filter(c => c.id != id);
+      if (novos.length === colaboradores.length) {
         return res.status(404).json({ sucesso: false, mensagem: 'Colaborador não encontrado' });
       }
-      colaboradores = novoColaboradores;
+      colaboradores = novos;
       return res.status(200).json({ sucesso: true, mensagem: '✅ Colaborador excluído!' });
     }
 
+    // ================= REGISTROS =================
     if (acao === 'listarRegistros') {
       return res.status(200).json({ sucesso: true, dados: registrosPonto });
     }
 
     if (acao === 'registrarPonto') {
-      const { matricula, tipo, observacao, data, hora, origem } = dados;
+      const { matricula, tipo, observacao, origem } = dados;
       
       const colaborador = colaboradores.find(c => c.matricula === matricula);
       if (!colaborador) {
         return res.status(404).json({ sucesso: false, mensagem: 'Colaborador não encontrado!' });
       }
 
-      const hoje = data || new Date().toLocaleDateString('pt-BR');
-      const horaAtual = hora || new Date().toLocaleTimeString('pt-BR');
+      const hoje = new Date().toLocaleDateString('pt-BR');
+      const horaAtual = new Date().toLocaleTimeString('pt-BR');
       
-      const registroExistente = registrosPonto.find(r => 
-        r.matricula === matricula && r.data === hoje && !r.saida
-      );
+      const existente = registrosPonto.find(r => r.matricula === matricula && r.data === hoje && !r.saida);
 
-      if (tipo === 'saida' && registroExistente) {
-        registroExistente.saida = horaAtual;
-        registroExistente.observacao = observacao || '';
+      if (tipo === 'saida' && existente) {
+        existente.saida = horaAtual;
+        existente.observacao = observacao || '';
         return res.status(200).json({ sucesso: true, mensagem: '✅ Saída registrada!', tipo: 'saida' });
       } 
-      else if (tipo === 'entrada' && !registroExistente) {
-        const novoRegistro = {
-          id: Date.now(),
-          matricula,
-          nome: colaborador.nome,
-          data: hoje,
-          entrada: horaAtual,
-          saida: '',
-          tipo: origem || 'Manual',
-          observacao: observacao || ''
-        };
-        registrosPonto.push(novoRegistro);
+      else if (tipo === 'entrada' && !existente) {
+        const novo = { id: Date.now(), matricula, nome: colaborador.nome, data: hoje, entrada: horaAtual, saida: '', tipo: origem || 'Manual', observacao: observacao || '' };
+        registrosPonto.push(novo);
         return res.status(200).json({ sucesso: true, mensagem: '✅ Entrada registrada!', tipo: 'entrada' });
       }
       
       return res.status(400).json({ sucesso: false, mensagem: 'Operação inválida!' });
     }
 
-    if (acao === 'verificarBiometria') {
-      const { hash } = dados;
-      const encontrado = biometria.find(b => b.hash === hash);
-      if (encontrado) {
-        return res.status(200).json({ 
-          sucesso: true, 
-          colaborador: { matricula: encontrado.matricula, nome: encontrado.nome }
-        });
-      }
-      return res.status(200).json({ sucesso: false });
-    }
-
-    if (acao === 'cadastrarBiometria') {
-      const { matricula, nome, hash } = dados;
-      const existente = biometria.find(b => b.matricula === matricula);
-      if (existente) {
-        existente.hash = hash;
-        existente.dataCadastro = new Date().toLocaleDateString('pt-BR');
-        return res.status(200).json({ sucesso: true, mensagem: '✅ Biometria atualizada!' });
-      }
-      biometria.push({
-        id: Date.now(),
-        matricula,
-        nome,
-        hash,
-        dataCadastro: new Date().toLocaleDateString('pt-BR')
-      });
-      return res.status(200).json({ sucesso: true, mensagem: '✅ Biometria cadastrada!' });
-    }
-
-    if (acao === 'listarTrocas') {
-      return res.status(200).json({ sucesso: true, dados: trocasTurno });
-    }
-
-    if (acao === 'registrarTroca') {
-      const { saidaMat, saidaNome, entradaMat, entradaNome, data, motivo, observacao } = dados;
-      
-      if (!saidaMat || !entradaMat || !motivo) {
-        return res.status(400).json({ sucesso: false, mensagem: 'Preencha todos os campos obrigatórios!' });
-      }
-      
-      const novaTroca = {
-        id: Date.now(),
-        saidaNome,
-        saidaMat,
-        entradaNome,
-        entradaMat,
-        data: data || new Date().toLocaleDateString('pt-BR'),
-        motivo,
-        observacao: observacao || ''
-      };
-      trocasTurno.push(novaTroca);
-      return res.status(200).json({ sucesso: true, mensagem: '🔄 Troca registrada!' });
-    }
-
+    // ================= USUÁRIOS TI =================
     if (acao === 'loginTI') {
       const { usuario, senha } = dados;
       const user = usuariosTI.find(u => u.usuario === usuario && u.senha === senha);
@@ -310,7 +145,7 @@ module.exports = async function handler(req, res) {
     if (acao === 'adicionarUsuarioTI') {
       const { usuario, senha, tipo } = dados;
       if (!usuario || !senha) {
-        return res.status(400).json({ sucesso: false, mensagem: 'Usuário e senha são obrigatórios!' });
+        return res.status(400).json({ sucesso: false, mensagem: 'Usuário e senha obrigatórios!' });
       }
       if (usuariosTI.some(u => u.usuario === usuario)) {
         return res.status(400).json({ sucesso: false, mensagem: 'Usuário já existe!' });
@@ -322,16 +157,64 @@ module.exports = async function handler(req, res) {
     if (acao === 'excluirUsuarioTI') {
       const { usuario } = dados;
       if (usuario === 'admin') {
-        return res.status(400).json({ sucesso: false, mensagem: '⚠️ Não pode excluir o usuário admin!' });
+        return res.status(400).json({ sucesso: false, mensagem: '⚠️ Não pode excluir admin!' });
       }
-      const novoUsuarios = usuariosTI.filter(u => u.usuario !== usuario);
-      if (novoUsuarios.length === usuariosTI.length) {
+      const novos = usuariosTI.filter(u => u.usuario !== usuario);
+      if (novos.length === usuariosTI.length) {
         return res.status(404).json({ sucesso: false, mensagem: 'Usuário não encontrado' });
       }
-      usuariosTI = novoUsuarios;
+      usuariosTI = novos;
       return res.status(200).json({ sucesso: true, mensagem: '✅ Usuário excluído!' });
     }
 
+    // ================= TROCAS =================
+    if (acao === 'listarTrocas') {
+      return res.status(200).json({ sucesso: true, dados: trocasTurno });
+    }
+
+    if (acao === 'registrarTroca') {
+      const { saidaMat, saidaNome, entradaMat, entradaNome, motivo, observacao } = dados;
+      
+      if (!saidaMat || !entradaMat || !motivo) {
+        return res.status(400).json({ sucesso: false, mensagem: 'Preencha todos os campos!' });
+      }
+      
+      const nova = {
+        id: Date.now(),
+        saidaNome,
+        saidaMat,
+        entradaNome,
+        entradaMat,
+        data: new Date().toLocaleDateString('pt-BR'),
+        motivo,
+        observacao: observacao || ''
+      };
+      trocasTurno.push(nova);
+      return res.status(200).json({ sucesso: true, mensagem: '🔄 Troca registrada!' });
+    }
+
+    // ================= BIOMETRIA =================
+    if (acao === 'verificarBiometria') {
+      const { hash } = dados;
+      const encontrado = biometria.find(b => b.hash === hash);
+      if (encontrado) {
+        return res.status(200).json({ sucesso: true, colaborador: { matricula: encontrado.matricula, nome: encontrado.nome } });
+      }
+      return res.status(200).json({ sucesso: false });
+    }
+
+    if (acao === 'cadastrarBiometria') {
+      const { matricula, nome, hash } = dados;
+      const existente = biometria.find(b => b.matricula === matricula);
+      if (existente) {
+        existente.hash = hash;
+        return res.status(200).json({ sucesso: true, mensagem: '✅ Biometria atualizada!' });
+      }
+      biometria.push({ id: Date.now(), matricula, nome, hash });
+      return res.status(200).json({ sucesso: true, mensagem: '✅ Biometria cadastrada!' });
+    }
+
+    // ================= ESTATÍSTICAS =================
     if (acao === 'estatisticas') {
       const hoje = new Date().toLocaleDateString('pt-BR');
       const registrosHoje = registrosPonto.filter(r => r.data === hoje).length;
@@ -342,59 +225,49 @@ module.exports = async function handler(req, res) {
       });
     }
 
+    // ================= API VERCEl (SIMULADA) =================
+    if (acao === 'listarProjetos') {
+      return res.status(200).json({
+        sucesso: true,
+        dados: [
+          { id: "prj_1", name: "ponto-app", framework: "nextjs", createdAt: Date.now() },
+          { id: "prj_2", name: "sistema-ponto", framework: "react", createdAt: Date.now() }
+        ]
+      });
+    }
+
+    if (acao === 'listarDeployments') {
+      return res.status(200).json({
+        sucesso: true,
+        dados: [
+          { uid: "dep_1", url: "ponto-app.vercel.app", readyState: "READY", createdAt: Date.now() },
+          { uid: "dep_2", url: "sistema-ponto-seven.vercel.app", readyState: "READY", createdAt: Date.now() }
+        ]
+      });
+    }
+
+    if (acao === 'cancelDeployment') {
+      return res.status(200).json({ sucesso: true, mensagem: '✅ Deployment cancelado!' });
+    }
+
+    // ================= FOLHA DE PONTO =================
     if (acao === 'gerarFolhaPonto') {
       const { mes, ano } = dados;
-      
-      const registrosFiltrados = registrosPonto.filter(r => {
-        const partes = r.data.split('/');
-        if (partes.length === 3) {
-          const mesReg = parseInt(partes[1]);
-          const anoReg = parseInt(partes[2]);
-          return mesReg == mes && anoReg == ano;
-        }
-        return false;
-      });
-      
-      const folhas = colaboradores.map(c => {
-        const registrosColab = registrosFiltrados.filter(r => r.matricula === c.matricula);
-        let totalHoras = 0;
-        
-        registrosColab.forEach(r => {
-          if (r.entrada && r.saida) {
-            const entradaHora = parseInt(r.entrada.split(':')[0]);
-            const entradaMin = parseInt(r.entrada.split(':')[1]);
-            const saidaHora = parseInt(r.saida.split(':')[0]);
-            const saidaMin = parseInt(r.saida.split(':')[1]);
-            const horas = (saidaHora - entradaHora) + (saidaMin - entradaMin) / 60;
-            totalHoras += horas;
-          }
-        });
-        
-        return {
-          colaborador: c.nome,
-          matricula: c.matricula,
-          escola: c.escola,
-          cargo: c.cargo,
-          cargaHoraria: c.cargaHoraria,
-          totalHoras: totalHoras.toFixed(2),
-          registros: registrosColab
-        };
-      });
-      
+      const folhas = colaboradores.map(c => ({
+        colaborador: c.nome,
+        matricula: c.matricula,
+        escola: c.escola,
+        cargaHoraria: c.cargaHoraria,
+        totalHoras: "0.00",
+        registros: []
+      }));
       return res.status(200).json({ sucesso: true, dados: folhas, mes, ano });
     }
 
-    return res.status(404).json({ 
-      sucesso: false, 
-      mensagem: `Ação '${acao}' não encontrada` 
-    });
+    return res.status(404).json({ sucesso: false, mensagem: `Ação '${acao}' não encontrada` });
 
   } catch (error) {
-    console.error('❌ Erro:', error);
-    return res.status(500).json({ 
-      sucesso: false, 
-      mensagem: 'Erro interno no servidor', 
-      erro: error.message 
-    });
+    console.error('Erro:', error);
+    return res.status(500).json({ sucesso: false, mensagem: 'Erro interno', erro: error.message });
   }
-};
+}

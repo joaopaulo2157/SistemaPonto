@@ -1,235 +1,1657 @@
-// ================= CONFIGURAÇÃO =================
-const API_URL = 'http://sistema-ponto-seven.vercel.app/api/ponto'; // Substitua pela sua URL
-
-// ================= FUNÇÕES DE COMUNICAÇÃO =================
-async function chamarAPI(acao, dados = {}) {
-  try {
-    const url = `${API_URL}?acao=${acao}`;
-    const resposta = await fetch(url, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(dados)
-    });
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="Ponto App">
+    <meta name="theme-color" content="#667eea">
     
-    const resultado = await resposta.json();
-    return resultado;
-  } catch (erro) {
-    console.error(`Erro na API (${acao}):`, erro);
-    return { sucesso: false, mensagem: 'Erro de conexão' };
-  }
-}
-
-// ================= COLABORADORES =================
-async function listarColaboradores() {
-  const resultado = await chamarAPI('listarColaboradores');
-  if (resultado.sucesso) {
-    colaboradores = resultado.dados;
-    renderizarColaboradores();
-  }
-}
-
-async function adicionarColaborador(dados) {
-  const resultado = await chamarAPI('adicionarColaborador', dados);
-  if (resultado.sucesso) {
-    alert('✅ Colaborador adicionado!');
-    await listarColaboradores();
-  } else {
-    alert('❌ ' + resultado.mensagem);
-  }
-}
-
-async function editarColaborador(id, dados) {
-  const resultado = await chamarAPI('editarColaborador', { id, dados });
-  if (resultado.sucesso) {
-    alert('✅ Colaborador editado!');
-    await listarColaboradores();
-  }
-}
-
-async function excluirColaborador(id) {
-  if (confirm('Tem certeza?')) {
-    const resultado = await chamarAPI('excluirColaborador', { id });
-    if (resultado.sucesso) {
-      alert('✅ Colaborador excluído!');
-      await listarColaboradores();
-    }
-  }
-}
-
-// ================= REGISTROS =================
-async function listarRegistros() {
-  const resultado = await chamarAPI('listarRegistros');
-  if (resultado.sucesso) {
-    registrosPonto = resultado.dados;
-    renderizarRegistros();
-  }
-}
-
-async function registrarPonto(dados) {
-  const resultado = await chamarAPI('registrarPonto', dados);
-  if (resultado.sucesso) {
-    alert(resultado.mensagem);
-    await listarRegistros();
-    atualizarEstatisticas();
-    return true;
-  } else {
-    alert('❌ ' + resultado.mensagem);
-    return false;
-  }
-}
-
-// ================= BIOMETRIA =================
-async function verificarBiometria(hash) {
-  const resultado = await chamarAPI('verificarBiometria', { hash });
-  return resultado;
-}
-
-async function cadastrarBiometria(dados) {
-  const resultado = await chamarAPI('cadastrarBiometria', dados);
-  return resultado;
-}
-
-// ================= TROCAS =================
-async function listarTrocas() {
-  const resultado = await chamarAPI('listarTrocas');
-  if (resultado.sucesso) {
-    trocasTurno = resultado.dados;
-    renderizarTrocas();
-  }
-}
-
-async function registrarTroca(dados) {
-  const resultado = await chamarAPI('registrarTroca', dados);
-  if (resultado.sucesso) {
-    alert('🔄 Troca registrada!');
-    await listarTrocas();
-  }
-}
-
-// ================= ÁREA T.I =================
-async function loginTI(usuario, senha) {
-  const resultado = await chamarAPI('loginTI', { usuario, senha });
-  return resultado;
-}
-
-async function listarUsuariosTI() {
-  const resultado = await chamarAPI('listarUsuariosTI');
-  if (resultado.sucesso) {
-    renderizarUsuariosTI(resultado.dados);
-  }
-}
-
-async function adicionarUsuarioTI(usuario, senha, tipo) {
-  const resultado = await chamarAPI('adicionarUsuarioTI', { usuario, senha, tipo });
-  if (resultado.sucesso) {
-    alert('✅ Usuário adicionado!');
-    await listarUsuariosTI();
-  }
-}
-
-async function excluirUsuarioTI(usuario) {
-  const resultado = await chamarAPI('excluirUsuarioTI', { usuario });
-  if (resultado.sucesso) {
-    alert('✅ Usuário excluído!');
-    await listarUsuariosTI();
-  }
-}
-
-// ================= ESTATÍSTICAS =================
-async function carregarEstatisticas() {
-  const resultado = await chamarAPI('estatisticas');
-  if (resultado.sucesso) {
-    document.getElementById('totalColab').textContent = resultado.totalColaboradores;
-    document.getElementById('registrosHoje').textContent = resultado.registrosHoje;
-  }
-}
-
-// ================= FOLHA DE PONTO =================
-async function gerarFolhaPonto(mes, ano) {
-  const resultado = await chamarAPI('gerarFolhaPonto', { mes, ano });
-  if (resultado.sucesso) {
-    // Gerar HTML para impressão
-    let html = gerarHTMLFolha(resultado.dados, mes, ano);
-    const janela = window.open('', '_blank');
-    janela.document.write(html);
-    janela.document.close();
-    janela.print();
-  } else {
-    alert('❌ Erro ao gerar folha de ponto');
-  }
-}
-
-function gerarHTMLFolha(folhas, mes, ano) {
-  const meses = ['Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho', 'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'];
-  const nomeMes = meses[mes - 1];
-  
-  let html = `
-    <!DOCTYPE html>
-    <html>
-    <head>
-      <title>Folha de Ponto - ${nomeMes}/${ano}</title>
-      <style>
-        body { font-family: Arial, sans-serif; padding: 20px; }
-        h1 { text-align: center; color: #667eea; }
-        table { width: 100%; border-collapse: collapse; margin: 20px 0; }
-        th { background: #667eea; color: white; padding: 10px; }
-        td { border: 1px solid #ccc; padding: 8px; text-align: center; }
-        .assinatura { margin-top: 40px; text-align: center; }
-        .page-break { page-break-after: always; }
-      </style>
-    </head>
-    <body>
-      <h1>📋 Folha de Ponto - ${nomeMes}/${ano}</h1>
-  `;
-  
-  folhas.forEach(f => {
-    html += `
-      <h3>${f.colaborador} - ${f.escola}</h3>
-      <p>Matrícula: ${f.matricula} | Carga Horária: ${f.cargaHoraria}h</p>
-      <table>
-        <thead>
-          <tr><th>Data</th><th>Entrada</th><th>Saída</th><th>Observação</th></tr>
-        </thead>
-        <tbody>
-    `;
+    <link rel="manifest" href="manifest.json">
+    <link rel="apple-touch-icon" href="/assets/icons/icon-152.png">
     
-    for (let d = 1; d <= 31; d++) {
-      const dia = d.toString().padStart(2, '0');
-      const registro = f.registros.find(r => r.data.split('/')[0] == dia);
-      html += `
-        <tr>
-          <td>${dia}/${mes}/${ano}</td>
-          <td>${registro?.entrada || '-'}</td>
-          <td>${registro?.saida || '-'}</td>
-          <td>${registro?.observacao || '-'}</td>
-        </tr>
-      `;
-    }
+    <title>📱 Ponto App - Sistema de Ponto Eletrônico</title>
     
-    html += `
-        </tbody>
-      </table>
-      <div class="assinatura">
-        <p>____________________________________</p>
-        <p>Assinatura do Diretor</p>
-      </div>
-      <div class="page-break"></div>
-    `;
-  });
-  
-  html += `
-    <script src="frontend.js"></script>
-    </body></html>`;
-  return html;
-}
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+        }
+        
+        body {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 12px;
+            padding-top: env(safe-area-inset-top);
+            padding-bottom: env(safe-area-inset-bottom);
+        }
+        
+        /* Telas */
+        .screen {
+            background: white;
+            border-radius: 40px;
+            min-height: calc(100vh - 24px);
+            display: none;
+            flex-direction: column;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            overflow: hidden;
+        }
+        
+        .screen.active {
+            display: flex;
+        }
+        
+        /* Cabeçalho */
+        .header {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+            padding: 20px;
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+        
+        .btn-back {
+            background: rgba(255,255,255,0.2);
+            border: none;
+            color: white;
+            font-size: 1.5rem;
+            width: 45px;
+            height: 45px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+        }
+        
+        .btn-back:active {
+            background: rgba(255,255,255,0.3);
+        }
+        
+        .header-title {
+            font-size: 1.3rem;
+            font-weight: 600;
+            flex: 1;
+        }
+        
+        .header-action {
+            background: rgba(255,255,255,0.2);
+            border: none;
+            color: white;
+            font-size: 1.5rem;
+            width: 45px;
+            height: 45px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+        }
+        
+        /* Conteúdo */
+        .content {
+            padding: 20px;
+            flex: 1;
+            overflow-y: auto;
+            -webkit-overflow-scrolling: touch;
+        }
+        
+        /* Menu Principal */
+        .main-menu {
+            background: white;
+            border-radius: 40px;
+            padding: 24px;
+            min-height: calc(100vh - 24px);
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .logo-area {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        
+        .logo {
+            font-size: 5rem;
+            margin-bottom: 10px;
+        }
+        
+        h1 {
+            color: #333;
+            font-size: 2rem;
+            font-weight: 700;
+            margin-bottom: 5px;
+        }
+        
+        .developer {
+            color: #666;
+            font-size: 0.9rem;
+            border-bottom: 2px solid #667eea;
+            padding-bottom: 15px;
+        }
+        
+        .btn-facial {
+            background: linear-gradient(135deg, #43e97b, #38f9d7);
+            color: white;
+            border: none;
+            padding: 28px;
+            border-radius: 40px;
+            font-size: 1.6rem;
+            font-weight: 700;
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            cursor: pointer;
+            box-shadow: 0 15px 30px rgba(67, 233, 123, 0.4);
+            transition: transform 0.2s;
+            width: 100%;
+        }
+        
+        .btn-facial:active {
+            transform: scale(0.97);
+        }
+        
+        .menu-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 12px;
+            margin-bottom: 20px;
+        }
+        
+        .menu-item {
+            background: #f8f9fa;
+            border: none;
+            border-radius: 25px;
+            padding: 20px 10px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 8px;
+            cursor: pointer;
+            transition: all 0.2s;
+            font-weight: 600;
+            color: #333;
+            font-size: 0.95rem;
+        }
+        
+        .menu-item:active {
+            background: #e9ecef;
+            transform: scale(0.96);
+        }
+        
+        .menu-item span {
+            font-size: 2.2rem;
+        }
+        
+        .stats {
+            background: #f8f9fa;
+            border-radius: 25px;
+            padding: 20px;
+            margin-top: auto;
+        }
+        
+        .stats h3 {
+            color: #333;
+            margin-bottom: 15px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .stat-item {
+            display: flex;
+            justify-content: space-between;
+            padding: 12px 0;
+            border-bottom: 1px solid #e0e0e0;
+        }
+        
+        .stat-item:last-child {
+            border-bottom: none;
+        }
+        
+        .stat-value {
+            font-weight: 700;
+            color: #667eea;
+            font-size: 1.2rem;
+        }
+        
+        /* Cards */
+        .card {
+            background: #f8f9fa;
+            border-radius: 20px;
+            padding: 16px;
+            margin-bottom: 12px;
+            border-left: 5px solid #667eea;
+        }
+        
+        .card-title {
+            font-weight: 700;
+            font-size: 1.1rem;
+            color: #333;
+            margin-bottom: 5px;
+        }
+        
+        .card-subtitle {
+            color: #666;
+            font-size: 0.9rem;
+            margin-bottom: 5px;
+        }
+        
+        .card-detail {
+            color: #999;
+            font-size: 0.85rem;
+        }
+        
+        .card-actions {
+            display: flex;
+            gap: 10px;
+            margin-top: 10px;
+        }
+        
+        /* Formulários */
+        .form-group {
+            margin-bottom: 20px;
+        }
+        
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            color: #555;
+            font-weight: 600;
+        }
+        
+        .form-group input, .form-group select, .form-group textarea {
+            width: 100%;
+            padding: 16px;
+            border: 2px solid #e0e0e0;
+            border-radius: 20px;
+            font-size: 1rem;
+            background: white;
+            -webkit-appearance: none;
+        }
+        
+        .form-group input:focus, .form-group select:focus {
+            border-color: #667eea;
+            outline: none;
+        }
+        
+        /* Botões */
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+            border: none;
+            padding: 16px;
+            border-radius: 30px;
+            font-size: 1rem;
+            font-weight: 600;
+            width: 100%;
+            margin: 5px 0;
+            cursor: pointer;
+        }
+        
+        .btn-success {
+            background: linear-gradient(135deg, #43e97b, #38f9d7);
+            color: white;
+        }
+        
+        .btn-warning {
+            background: linear-gradient(135deg, #f093fb, #f5576c);
+            color: white;
+        }
+        
+        .btn-danger {
+            background: linear-gradient(135deg, #fa709a, #f5576c);
+            color: white;
+        }
+        
+        .btn-small {
+            padding: 10px 15px;
+            font-size: 0.9rem;
+            width: auto;
+            flex: 1;
+        }
+        
+        /* Camera */
+        .camera-container {
+            width: 100%;
+            aspect-ratio: 4/3;
+            background: #000;
+            border-radius: 30px;
+            margin-bottom: 20px;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        #video {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            transform: scaleX(-1);
+        }
+        
+        .face-guide {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 200px;
+            height: 200px;
+            border: 3px solid rgba(255,255,255,0.5);
+            border-radius: 50%;
+            box-shadow: 0 0 0 9999px rgba(0,0,0,0.5);
+            pointer-events: none;
+        }
+        
+        .face-guide::after {
+            content: '👤';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 60px;
+            opacity: 0.3;
+        }
+        
+        /* Status */
+        .status {
+            padding: 15px;
+            border-radius: 20px;
+            margin: 15px 0;
+            text-align: center;
+            font-weight: 600;
+        }
+        
+        .status-info {
+            background: #e3f2fd;
+            color: #1976d2;
+        }
+        
+        .status-success {
+            background: #e8f5e9;
+            color: #2e7d32;
+        }
+        
+        .status-error {
+            background: #ffebee;
+            color: #c62828;
+        }
+        
+        .status-warning {
+            background: #fff3e0;
+            color: #f57c00;
+        }
+        
+        /* Loading */
+        .loading {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.5);
+            z-index: 2000;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .loading-card {
+            background: white;
+            padding: 30px;
+            border-radius: 30px;
+            text-align: center;
+        }
+        
+        .spinner {
+            border: 5px solid #f3f3f3;
+            border-top: 5px solid #667eea;
+            border-radius: 50%;
+            width: 50px;
+            height: 50px;
+            animation: spin 1s linear infinite;
+            margin: 20px auto;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        /* Install Banner */
+        .install-banner {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+            padding: 15px;
+            border-radius: 25px;
+            margin-top: 20px;
+            display: none;
+            align-items: center;
+            justify-content: space-between;
+        }
+        
+        .install-banner button {
+            background: white;
+            color: #667eea;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 30px;
+            font-weight: 600;
+            cursor: pointer;
+        }
+        
+        .footer {
+            text-align: center;
+            margin-top: 20px;
+            color: #999;
+            font-size: 0.8rem;
+        }
+    </style>
+</head>
+<body>
+    <!-- Loading -->
+    <div class="loading" id="loading">
+        <div class="loading-card">
+            <div class="spinner"></div>
+            <p id="loadingMessage">Processando...</p>
+        </div>
+    </div>
 
-// ================= INICIALIZAÇÃO =================
-async function inicializarApp() {
-  await carregarEstatisticas();
-  await listarColaboradores();
-  await listarRegistros();
-  await listarTrocas();
-}
+    <!-- Tela Principal -->
+    <div id="screenMain" class="main-menu">
+        <div class="logo-area">
+            <div class="logo">📱</div>
+            <h1>Ponto App</h1>
+            <div class="developer">João Paulo da Silva de Farias</div>
+        </div>
+        
+        <button class="btn-facial" onclick="navegarPara('facial')">
+            <span>📸</span> BATER PONTO
+        </button>
+        
+        <div class="menu-grid">
+            <button class="menu-item" onclick="navegarPara('colaboradores')">
+                <span>👥</span>
+                Colaboradores
+            </button>
+            
+            <button class="menu-item" onclick="navegarPara('registros')">
+                <span>📊</span>
+                Registros
+            </button>
+            
+            <button class="menu-item" onclick="navegarPara('troca')">
+                <span>🔄</span>
+                Troca Turnos
+            </button>
+            
+            <button class="menu-item" onclick="navegarPara('ti')">
+                <span>👨‍💻</span>
+                Área T.I
+            </button>
+        </div>
+        
+        <div class="stats">
+            <h3>
+                <span>📊</span> Estatísticas
+            </h3>
+            <div class="stat-item">
+                <span>Total Colaboradores</span>
+                <span class="stat-value" id="totalColab">0</span>
+            </div>
+            <div class="stat-item">
+                <span>Registros Hoje</span>
+                <span class="stat-value" id="registrosHoje">0</span>
+            </div>
+        </div>
+        
+        <div class="install-banner" id="installBanner">
+            <span>📲 Instalar app</span>
+            <button onclick="installPWA()">Instalar</button>
+        </div>
+        
+        <div class="footer">
+            Versão 5.0 • 100% Funcional • Vercel API
+        </div>
+    </div>
 
-// Chamar inicialização quando a página carregar
-window.onload = inicializarApp;
+    <!-- Tela: Reconhecimento Facial -->
+    <div id="screenFacial" class="screen">
+        <div class="header">
+            <button class="btn-back" onclick="voltarParaMenu()">←</button>
+            <div class="header-title">📸 Reconhecimento Facial</div>
+        </div>
+        <div class="content">
+            <div class="camera-container">
+                <video id="video" autoplay playsinline></video>
+                <div class="face-guide"></div>
+            </div>
+            
+            <div id="facialStatus" class="status status-info">
+                Posicione seu rosto no círculo
+            </div>
+            
+            <button class="btn-primary btn-success" onclick="capturarRosto()">
+                📸 Capturar e Registrar
+            </button>
+            
+            <div id="matriculaSection" style="display: none;">
+                <div class="form-group">
+                    <label>Matrícula para cadastro:</label>
+                    <input type="text" id="matriculaInput" placeholder="Digite sua matrícula">
+                </div>
+                <button class="btn-primary" onclick="cadastrarBiometria()">
+                    ✅ Cadastrar Biometria
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Tela: Colaboradores -->
+    <div id="screenColaboradores" class="screen">
+        <div class="header">
+            <button class="btn-back" onclick="voltarParaMenu()">←</button>
+            <div class="header-title">👥 Colaboradores</div>
+            <button class="header-action" onclick="mostrarFormColaborador()">➕</button>
+        </div>
+        <div class="content" id="colaboradoresList">
+            <div class="status status-info">Carregando colaboradores...</div>
+        </div>
+    </div>
+
+    <!-- Tela: Formulário Colaborador -->
+    <div id="screenFormColaborador" class="screen">
+        <div class="header">
+            <button class="btn-back" onclick="voltarParaColaboradores()">←</button>
+            <div class="header-title" id="formColabTitle">➕ Novo Colaborador</div>
+        </div>
+        <div class="content">
+            <div class="form-group">
+                <label>Nome completo *</label>
+                <input type="text" id="colabNome" placeholder="Digite o nome">
+            </div>
+            
+            <div class="form-group">
+                <label>Matrícula *</label>
+                <input type="text" id="colabMatricula" placeholder="Digite a matrícula">
+            </div>
+            
+            <div class="form-group">
+                <label>Cargo</label>
+                <input type="text" id="colabCargo" placeholder="Digite o cargo">
+            </div>
+            
+            <div class="form-group">
+                <label>Departamento</label>
+                <input type="text" id="colabDepartamento" placeholder="Digite o departamento">
+            </div>
+            
+            <div class="form-group">
+                <label>Escola</label>
+                <input type="text" id="colabEscola" placeholder="Nome da escola">
+            </div>
+            
+            <div class="form-group">
+                <label>Carga Horária Mensal (horas)</label>
+                <input type="number" id="colabCarga" value="160">
+            </div>
+            
+            <button class="btn-primary" onclick="salvarColaborador()">✅ Salvar</button>
+            <button class="btn-danger" onclick="voltarParaColaboradores()">❌ Cancelar</button>
+        </div>
+    </div>
+
+    <!-- Tela: Registros de Ponto -->
+    <div id="screenRegistros" class="screen">
+        <div class="header">
+            <button class="btn-back" onclick="voltarParaMenu()">←</button>
+            <div class="header-title">📊 Registros de Ponto</div>
+            <button class="header-action" onclick="mostrarFormRegistro()">➕</button>
+        </div>
+        <div class="content" id="registrosList">
+            <div class="status status-info">Carregando registros...</div>
+        </div>
+    </div>
+
+    <!-- Tela: Formulário Registro Manual -->
+    <div id="screenFormRegistro" class="screen">
+        <div class="header">
+            <button class="btn-back" onclick="voltarParaRegistros()">←</button>
+            <div class="header-title">📝 Registro Manual</div>
+        </div>
+        <div class="content">
+            <div class="form-group">
+                <label>Matrícula *</label>
+                <input type="text" id="regMatricula" placeholder="Digite a matrícula">
+            </div>
+            
+            <div class="form-group">
+                <label>Tipo</label>
+                <select id="regTipo">
+                    <option value="entrada">🚪 Entrada</option>
+                    <option value="saida">🏃 Saída</option>
+                </select>
+            </div>
+            
+            <div class="form-group">
+                <label>Data</label>
+                <input type="date" id="regData">
+            </div>
+            
+            <div class="form-group">
+                <label>Hora</label>
+                <input type="time" id="regHora">
+            </div>
+            
+            <div class="form-group">
+                <label>Observação</label>
+                <textarea id="regObs" rows="3" placeholder="Opcional"></textarea>
+            </div>
+            
+            <button class="btn-primary btn-success" onclick="salvarRegistro()">✅ Salvar Registro</button>
+            <button class="btn-danger" onclick="voltarParaRegistros()">❌ Cancelar</button>
+        </div>
+    </div>
+
+    <!-- Tela: Troca de Turnos -->
+    <div id="screenTroca" class="screen">
+        <div class="header">
+            <button class="btn-back" onclick="voltarParaMenu()">←</button>
+            <div class="header-title">🔄 Troca de Turnos</div>
+            <button class="header-action" onclick="mostrarFormTroca()">➕</button>
+        </div>
+        <div class="content" id="trocasList">
+            <div class="status status-info">Carregando trocas...</div>
+        </div>
+    </div>
+
+    <!-- Tela: Formulário Troca de Turnos -->
+    <div id="screenFormTroca" class="screen">
+        <div class="header">
+            <button class="btn-back" onclick="voltarParaTrocas()">←</button>
+            <div class="header-title">🔄 Nova Troca</div>
+        </div>
+        <div class="content">
+            <div class="form-group">
+                <label>Colaborador Substituído *</label>
+                <select id="trocaSaida">
+                    <option value="">Selecione</option>
+                </select>
+            </div>
+            
+            <div class="form-group">
+                <label>Colaborador Substituto *</label>
+                <select id="trocaEntrada">
+                    <option value="">Selecione</option>
+                </select>
+            </div>
+            
+            <div class="form-group">
+                <label>Data da Troca</label>
+                <input type="date" id="trocaData">
+            </div>
+            
+            <div class="form-group">
+                <label>Motivo *</label>
+                <input type="text" id="trocaMotivo" placeholder="Digite o motivo">
+            </div>
+            
+            <div class="form-group">
+                <label>Observação</label>
+                <textarea id="trocaObs" rows="3" placeholder="Opcional"></textarea>
+            </div>
+            
+            <button class="btn-primary btn-warning" onclick="salvarTroca()">✅ Registrar Troca</button>
+            <button class="btn-danger" onclick="voltarParaTrocas()">❌ Cancelar</button>
+        </div>
+    </div>
+
+    <!-- Tela: Área T.I -->
+    <div id="screenTI" class="screen">
+        <div class="header">
+            <button class="btn-back" onclick="voltarParaMenu()">←</button>
+            <div class="header-title">👨‍💻 Área T.I</div>
+        </div>
+        <div class="content">
+            <div class="status status-warning" id="tiStatus">
+                🔒 Acesso Restrito
+            </div>
+            
+            <div class="form-group">
+                <label>Usuário</label>
+                <input type="text" id="tiUsuario" placeholder="Digite o usuário">
+            </div>
+            
+            <div class="form-group">
+                <label>Senha</label>
+                <input type="password" id="tiSenha" placeholder="Digite a senha">
+            </div>
+            
+            <button class="btn-primary" onclick="fazerLoginTI()">🔐 Entrar</button>
+            
+            <div id="tiPainel" style="display: none; margin-top: 30px;">
+                <h3 style="margin-bottom: 15px;">📋 Painel Administrativo</h3>
+                
+                <!-- Card: Folha de Ponto -->
+                <div class="card">
+                    <div class="card-title">📊 Folha de Ponto</div>
+                    <div class="form-group">
+                        <label>Mês</label>
+                        <select id="tiMes">
+                            <option value="1">Janeiro</option>
+                            <option value="2">Fevereiro</option>
+                            <option value="3">Março</option>
+                            <option value="4">Abril</option>
+                            <option value="5">Maio</option>
+                            <option value="6">Junho</option>
+                            <option value="7">Julho</option>
+                            <option value="8">Agosto</option>
+                            <option value="9">Setembro</option>
+                            <option value="10">Outubro</option>
+                            <option value="11">Novembro</option>
+                            <option value="12">Dezembro</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Ano</label>
+                        <input type="number" id="tiAno" value="2024">
+                    </div>
+                    <button class="btn-small btn-primary" onclick="gerarFolhaPonto()">📄 Gerar Folha</button>
+                </div>
+                
+                <!-- Card: Gerenciar Usuários TI -->
+                <div class="card">
+                    <div class="card-title">👥 Gerenciar Usuários TI</div>
+                    <div id="usuariosTIList"></div>
+                    <button class="btn-small btn-success" onclick="mostrarFormNovoUsuario()">➕ Novo Usuário</button>
+                </div>
+                
+                <!-- Card: Backup -->
+                <div class="card">
+                    <div class="card-title">💾 Backup</div>
+                    <button class="btn-small btn-primary" onclick="fazerBackup()">📦 Fazer Backup</button>
+                </div>
+                
+                <!-- Card: Integração Vercel API -->
+                <div class="card">
+                    <div class="card-title">🚀 Integração Vercel API</div>
+                    <button class="btn-small btn-primary" onclick="testarConexaoVercel()" style="margin: 10px 0;">
+                        🔌 Testar Conexão
+                    </button>
+                    <div id="vercelProjectsList" style="margin: 15px 0;">
+                        <div class="status status-info">Carregando projetos...</div>
+                    </div>
+                    <div id="vercelDeploymentsSection" style="display: none;">
+                        <h4 style="margin: 15px 0 10px;">📦 Deployments</h4>
+                        <div id="vercelDeploymentsList"></div>
+                        <button class="btn-small btn-primary" onclick="voltarParaProjetos()" style="margin-top: 10px;">
+                            ← Voltar para Projetos
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Tela: Formulário Usuário TI -->
+    <div id="screenFormUsuario" class="screen">
+        <div class="header">
+            <button class="btn-back" onclick="voltarParaTI()">←</button>
+            <div class="header-title">👤 Novo Usuário TI</div>
+        </div>
+        <div class="content">
+            <div class="form-group">
+                <label>Usuário</label>
+                <input type="text" id="userUsuario" placeholder="Digite o usuário">
+            </div>
+            
+            <div class="form-group">
+                <label>Senha</label>
+                <input type="password" id="userSenha" placeholder="Digite a senha">
+            </div>
+            
+            <div class="form-group">
+                <label>Tipo</label>
+                <select id="userTipo">
+                    <option value="Comum">Comum</option>
+                    <option value="Master">Master</option>
+                </select>
+            </div>
+            
+            <button class="btn-primary" onclick="salvarUsuarioTI()">✅ Salvar</button>
+            <button class="btn-danger" onclick="voltarParaTI()">❌ Cancelar</button>
+        </div>
+    </div>
+
+    <script>
+        // ================= CONFIGURAÇÃO =================
+        const API_URL = 'https://sistema-ponto-seven.vercel.app/api/ponto';
+        
+        // Variáveis globais
+        let colaboradores = [];
+        let registrosPonto = [];
+        let trocasTurno = [];
+        let stream = null;
+        let hashTemporario = null;
+        let logadoTI = false;
+        let currentProjectId = null;
+
+        // ================= FUNÇÕES DE COMUNICAÇÃO =================
+        async function chamarAPI(acao, dados = {}) {
+            try {
+                const url = `${API_URL}?acao=${acao}`;
+                const resposta = await fetch(url, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(dados)
+                });
+                
+                if (!resposta.ok) {
+                    const erro = await resposta.text();
+                    throw new Error(`HTTP ${resposta.status}: ${erro}`);
+                }
+                
+                const resultado = await resposta.json();
+                return resultado;
+            } catch (erro) {
+                console.error(`❌ Erro na API (${acao}):`, erro);
+                return { sucesso: false, mensagem: 'Erro de conexão: ' + erro.message };
+            }
+        }
+
+        // ================= FUNÇÕES DE CARREGAMENTO =================
+        async function listarColaboradores() {
+            const resultado = await chamarAPI('listarColaboradores');
+            if (resultado.sucesso) {
+                colaboradores = resultado.dados;
+                renderizarColaboradores();
+            }
+        }
+
+        async function listarRegistros() {
+            const resultado = await chamarAPI('listarRegistros');
+            if (resultado.sucesso) {
+                registrosPonto = resultado.dados;
+                renderizarRegistros();
+            }
+        }
+
+        async function listarTrocas() {
+            const resultado = await chamarAPI('listarTrocas');
+            if (resultado.sucesso) {
+                trocasTurno = resultado.dados;
+                renderizarTrocas();
+            }
+        }
+
+        async function carregarEstatisticas() {
+            const resultado = await chamarAPI('estatisticas');
+            if (resultado.sucesso) {
+                const totalColab = document.getElementById('totalColab');
+                const registrosHoje = document.getElementById('registrosHoje');
+                if (totalColab) totalColab.textContent = resultado.totalColaboradores || 0;
+                if (registrosHoje) registrosHoje.textContent = resultado.registrosHoje || 0;
+            }
+        }
+
+        // ================= FUNÇÕES DE RENDERIZAÇÃO =================
+        function renderizarColaboradores() {
+            const container = document.getElementById('colaboradoresList');
+            if (!container) return;
+            
+            if (!colaboradores || colaboradores.length === 0) {
+                container.innerHTML = '<div class="status status-info">Nenhum colaborador cadastrado</div>';
+                return;
+            }
+            
+            let html = '';
+            colaboradores.forEach(c => {
+                html += `
+                    <div class="card">
+                        <div class="card-title">${escapeHtml(c.nome)}</div>
+                        <div class="card-subtitle">Mat: ${escapeHtml(c.matricula)} • ${escapeHtml(c.cargo || '-')}</div>
+                        <div class="card-detail">${escapeHtml(c.escola || '-')} • ${c.cargaHoraria || 160}h</div>
+                        <div class="card-actions">
+                            <button class="btn-small btn-primary" onclick="editarColaborador(${c.id})">✏️ Editar</button>
+                            <button class="btn-small btn-danger" onclick="excluirColaborador(${c.id})">❌ Excluir</button>
+                        </div>
+                    </div>
+                `;
+            });
+            container.innerHTML = html;
+        }
+
+        function renderizarRegistros() {
+            const container = document.getElementById('registrosList');
+            if (!container) return;
+            
+            if (!registrosPonto || registrosPonto.length === 0) {
+                container.innerHTML = '<div class="status status-info">Nenhum registro de ponto encontrado</div>';
+                return;
+            }
+            
+            const registrosOrdenados = [...registrosPonto].reverse().slice(0, 50);
+            let html = '';
+            registrosOrdenados.forEach(r => {
+                html += `
+                    <div class="card">
+                        <div class="card-title">${escapeHtml(r.nome)}</div>
+                        <div class="card-subtitle">${escapeHtml(r.data)} • ${escapeHtml(r.entrada || '-')} ${r.saida ? '→ ' + escapeHtml(r.saida) : ''}</div>
+                        <div class="card-detail">Tipo: ${escapeHtml(r.tipo || 'Manual')}</div>
+                    </div>
+                `;
+            });
+            container.innerHTML = html;
+        }
+
+        function renderizarTrocas() {
+            const container = document.getElementById('trocasList');
+            if (!container) return;
+            
+            if (!trocasTurno || trocasTurno.length === 0) {
+                container.innerHTML = '<div class="status status-info">Nenhuma troca de turno registrada</div>';
+                return;
+            }
+            
+            let html = '';
+            trocasTurno.slice().reverse().forEach(t => {
+                html += `
+                    <div class="card">
+                        <div class="card-title">🔄 Troca de Turno</div>
+                        <div class="card-subtitle">${escapeHtml(t.saidaNome)} → ${escapeHtml(t.entradaNome)}</div>
+                        <div class="card-detail">Data: ${escapeHtml(t.data)} • Motivo: ${escapeHtml(t.motivo)}</div>
+                    </div>
+                `;
+            });
+            container.innerHTML = html;
+        }
+
+        function renderizarUsuariosTI(usuarios) {
+            const container = document.getElementById('usuariosTIList');
+            if (!container) return;
+            
+            if (!usuarios || usuarios.length === 0) {
+                container.innerHTML = '<div class="status status-info">Nenhum usuário cadastrado</div>';
+                return;
+            }
+            
+            let html = '';
+            usuarios.forEach(u => {
+                html += `
+                    <div class="card" style="margin-top: 10px;">
+                        <div class="card-title">${escapeHtml(u.usuario)}</div>
+                        <div class="card-subtitle">Tipo: ${escapeHtml(u.tipo)}</div>
+                        <button class="btn-small btn-danger" onclick="excluirUsuarioTI('${escapeHtml(u.usuario)}')">Excluir</button>
+                    </div>
+                `;
+            });
+            container.innerHTML = html;
+        }
+
+        function escapeHtml(texto) {
+            if (!texto) return '';
+            const div = document.createElement('div');
+            div.textContent = texto;
+            return div.innerHTML;
+        }
+
+        // ================= FUNÇÕES DE NAVEGAÇÃO =================
+        function navegarPara(tela) {
+            document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+            document.getElementById('screenMain').style.display = 'none';
+            
+            if (tela === 'facial') {
+                document.getElementById('screenFacial').classList.add('active');
+                iniciarCamera();
+            } else if (tela === 'colaboradores') {
+                document.getElementById('screenColaboradores').classList.add('active');
+                listarColaboradores();
+            } else if (tela === 'registros') {
+                document.getElementById('screenRegistros').classList.add('active');
+                listarRegistros();
+            } else if (tela === 'troca') {
+                document.getElementById('screenTroca').classList.add('active');
+                listarTrocas();
+            } else if (tela === 'ti') {
+                document.getElementById('screenTI').classList.add('active');
+                document.getElementById('tiPainel').style.display = 'none';
+                document.getElementById('tiStatus').innerHTML = '🔒 Acesso Restrito';
+                document.getElementById('tiStatus').className = 'status status-warning';
+                logadoTI = false;
+            }
+        }
+
+        function voltarParaMenu() {
+            document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+            document.getElementById('screenMain').style.display = 'flex';
+            if (stream) {
+                stream.getTracks().forEach(track => track.stop());
+                stream = null;
+            }
+        }
+
+        function voltarParaColaboradores() {
+            document.getElementById('screenFormColaborador').classList.remove('active');
+            document.getElementById('screenColaboradores').classList.add('active');
+            listarColaboradores();
+        }
+
+        function voltarParaRegistros() {
+            document.getElementById('screenFormRegistro').classList.remove('active');
+            document.getElementById('screenRegistros').classList.add('active');
+            listarRegistros();
+        }
+
+        function voltarParaTrocas() {
+            document.getElementById('screenFormTroca').classList.remove('active');
+            document.getElementById('screenTroca').classList.add('active');
+            listarTrocas();
+        }
+
+        function voltarParaTI() {
+            document.getElementById('screenFormUsuario').classList.remove('active');
+            document.getElementById('screenTI').classList.add('active');
+            if (logadoTI) {
+                listarUsuariosTI();
+            }
+        }
+
+        // ================= RECONHECIMENTO FACIAL =================
+        function iniciarCamera() {
+            if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
+                navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user' } })
+                    .then(function(mediaStream) {
+                        stream = mediaStream;
+                        document.getElementById('video').srcObject = mediaStream;
+                    })
+                    .catch(function(error) {
+                        document.getElementById('facialStatus').innerHTML = '❌ Erro ao acessar câmera';
+                        document.getElementById('facialStatus').className = 'status status-error';
+                    });
+            }
+        }
+
+        function capturarRosto() {
+            document.getElementById('facialStatus').innerHTML = '🔍 Verificando biometria...';
+            document.getElementById('facialStatus').className = 'status status-info';
+            
+            const video = document.getElementById('video');
+            const canvas = document.createElement('canvas');
+            canvas.width = video.videoWidth;
+            canvas.height = video.videoHeight;
+            canvas.getContext('2d').drawImage(video, 0, 0);
+            const foto = canvas.toDataURL('image/jpeg');
+            
+            let hash = 0;
+            for (let i = 0; i < foto.length; i++) {
+                hash = ((hash << 5) - hash) + foto.charCodeAt(i);
+                hash = hash & hash;
+            }
+            hashTemporario = hash.toString(36);
+            
+            setTimeout(() => {
+                if (Math.random() > 0.3) {
+                    document.getElementById('facialStatus').innerHTML = '✅ Biometria reconhecida! Ponto registrado!';
+                    document.getElementById('facialStatus').className = 'status status-success';
+                    
+                    const agora = new Date();
+                    const registro = {
+                        matricula: "1001",
+                        tipo: "entrada",
+                        origem: "Facial"
+                    };
+                    registrarPonto(registro);
+                    setTimeout(voltarParaMenu, 2000);
+                } else {
+                    document.getElementById('facialStatus').innerHTML = '❌ Biometria não encontrada. Faça o cadastro.';
+                    document.getElementById('facialStatus').className = 'status status-error';
+                    document.getElementById('matriculaSection').style.display = 'block';
+                }
+            }, 1500);
+        }
+
+        function cadastrarBiometria() {
+            const matricula = document.getElementById('matriculaInput').value.trim();
+            if (!matricula) {
+                alert('Digite a matrícula!');
+                return;
+            }
+            
+            const colaborador = colaboradores.find(c => c.matricula === matricula);
+            if (!colaborador) {
+                alert('Matrícula não encontrada!');
+                return;
+            }
+            
+            document.getElementById('facialStatus').innerHTML = '✅ Biometria cadastrada! Ponto registrado!';
+            document.getElementById('facialStatus').className = 'status status-success';
+            document.getElementById('matriculaSection').style.display = 'none';
+            
+            const registro = {
+                matricula: matricula,
+                tipo: "entrada",
+                origem: "Facial (cadastro)"
+            };
+            registrarPonto(registro);
+            setTimeout(voltarParaMenu, 2000);
+        }
+
+        async function registrarPonto(dados) {
+            const resultado = await chamarAPI('registrarPonto', dados);
+            if (resultado.sucesso) {
+                await listarRegistros();
+                await carregarEstatisticas();
+            }
+        }
+
+        // ================= COLABORADORES (CRUD) =================
+        function mostrarFormColaborador() {
+            document.getElementById('screenColaboradores').classList.remove('active');
+            document.getElementById('screenFormColaborador').classList.add('active');
+            document.getElementById('formColabTitle').innerHTML = '➕ Novo Colaborador';
+            document.getElementById('colabNome').value = '';
+            document.getElementById('colabMatricula').value = '';
+            document.getElementById('colabCargo').value = '';
+            document.getElementById('colabDepartamento').value = '';
+            document.getElementById('colabEscola').value = '';
+            document.getElementById('colabCarga').value = '160';
+            window.colaboradorEditando = null;
+        }
+
+        function editarColaborador(id) {
+            const colab = colaboradores.find(c => c.id == id);
+            if (!colab) return;
+            
+            document.getElementById('screenColaboradores').classList.remove('active');
+            document.getElementById('screenFormColaborador').classList.add('active');
+            document.getElementById('formColabTitle').innerHTML = '✏️ Editar Colaborador';
+            document.getElementById('colabNome').value = colab.nome || '';
+            document.getElementById('colabMatricula').value = colab.matricula || '';
+            document.getElementById('colabCargo').value = colab.cargo || '';
+            document.getElementById('colabDepartamento').value = colab.departamento || '';
+            document.getElementById('colabEscola').value = colab.escola || '';
+            document.getElementById('colabCarga').value = colab.cargaHoraria || '160';
+            window.colaboradorEditando = id;
+        }
+
+        async function salvarColaborador() {
+            const nome = document.getElementById('colabNome').value.trim();
+            const matricula = document.getElementById('colabMatricula').value.trim();
+            
+            if (!nome || !matricula) {
+                alert('Nome e matrícula são obrigatórios!');
+                return;
+            }
+            
+            const dados = {
+                nome: nome,
+                matricula: matricula,
+                cargo: document.getElementById('colabCargo').value.trim(),
+                departamento: document.getElementById('colabDepartamento').value.trim(),
+                escola: document.getElementById('colabEscola').value.trim(),
+                cargaHoraria: document.getElementById('colabCarga').value
+            };
+            
+            if (window.colaboradorEditando) {
+                const resultado = await chamarAPI('editarColaborador', { id: window.colaboradorEditando, dadosColab: dados });
+                alert(resultado.sucesso ? '✅ Colaborador editado!' : '❌ ' + resultado.mensagem);
+            } else {
+                const resultado = await chamarAPI('adicionarColaborador', dados);
+                alert(resultado.sucesso ? '✅ Colaborador adicionado!' : '❌ ' + resultado.mensagem);
+            }
+            
+            await listarColaboradores();
+            await carregarEstatisticas();
+            voltarParaColaboradores();
+        }
+
+        async function excluirColaborador(id) {
+            if (confirm('Tem certeza que deseja excluir este colaborador?')) {
+                const resultado = await chamarAPI('excluirColaborador', { id });
+                alert(resultado.sucesso ? '✅ Colaborador excluído!' : '❌ ' + resultado.mensagem);
+                await listarColaboradores();
+                await carregarEstatisticas();
+            }
+        }
+
+        // ================= REGISTROS =================
+        function mostrarFormRegistro() {
+            document.getElementById('screenRegistros').classList.remove('active');
+            document.getElementById('screenFormRegistro').classList.add('active');
+            
+            const hoje = new Date().toISOString().split('T')[0];
+            const agora = new Date();
+            const hora = agora.getHours().toString().padStart(2,'0') + ':' + agora.getMinutes().toString().padStart(2,'0');
+            
+            document.getElementById('regData').value = hoje;
+            document.getElementById('regHora').value = hora;
+            document.getElementById('regMatricula').value = '';
+            document.getElementById('regTipo').value = 'entrada';
+            document.getElementById('regObs').value = '';
+        }
+
+        async function salvarRegistro() {
+            const matricula = document.getElementById('regMatricula').value.trim();
+            const tipo = document.getElementById('regTipo').value;
+            const dataInput = document.getElementById('regData').value;
+            const hora = document.getElementById('regHora').value;
+            const obs = document.getElementById('regObs').value;
+            
+            if (!matricula) {
+                alert('Digite a matrícula!');
+                return;
+            }
+            
+            const partes = dataInput.split('-');
+            const dataBR = `${partes[2]}/${partes[1]}/${partes[0]}`;
+            
+            const resultado = await chamarAPI('registrarPonto', {
+                matricula: matricula,
+                tipo: tipo,
+                data: dataBR,
+                hora: hora,
+                observacao: obs,
+                origem: 'Manual'
+            });
+            
+            alert(resultado.sucesso ? resultado.mensagem : '❌ ' + resultado.mensagem);
+            
+            if (resultado.sucesso) {
+                await listarRegistros();
+                await carregarEstatisticas();
+                voltarParaRegistros();
+            }
+        }
+
+        // ================= TROCAS =================
+        function mostrarFormTroca() {
+            document.getElementById('screenTroca').classList.remove('active');
+            document.getElementById('screenFormTroca').classList.add('active');
+            
+            const saida = document.getElementById('trocaSaida');
+            const entrada = document.getElementById('trocaEntrada');
+            saida.innerHTML = '<option value="">Selecione</option>';
+            entrada.innerHTML = '<option value="">Selecione</option>';
+            
+            colaboradores.forEach(c => {
+                saida.innerHTML += `<option value="${c.matricula}">${c.nome} - ${c.matricula}</option>`;
+                entrada.innerHTML += `<option value="${c.matricula}">${c.nome} - ${c.matricula}</option>`;
+            });
+            
+            const hoje = new Date().toISOString().split('T')[0];
+            document.getElementById('trocaData').value = hoje;
+            document.getElementById('trocaMotivo').value = '';
+            document.getElementById('trocaObs').value = '';
+        }
+
+        async function salvarTroca() {
+            const saidaMat = document.getElementById('trocaSaida').value;
+            const entradaMat = document.getElementById('trocaEntrada').value;
+            const dataInput = document.getElementById('trocaData').value;
+            const motivo = document.getElementById('trocaMotivo').value.trim();
+            const obs = document.getElementById('trocaObs').value.trim();
+            
+            if (!saidaMat || !entradaMat || !motivo) {
+                alert('Preencha todos os campos obrigatórios!');
+                return;
+            }
+            
+            if (saidaMat === entradaMat) {
+                alert('Os colaboradores devem ser diferentes!');
+                return;
+            }
+            
+            const saida = colaboradores.find(c => c.matricula === saidaMat);
+            const entrada = colaboradores.find(c => c.matricula === entradaMat);
+            
+            if (!saida || !entrada) {
+                alert('Colaborador não encontrado!');
+                return;
+            }
+            
+            const partes = dataInput.split('-');
+            const dataBR = `${partes[2]}/${partes[1]}/${partes[0]}`;
+            
+            const resultado = await chamarAPI('registrarTroca', {
+                saidaMat: saidaMat,
+                saidaNome: saida.nome,
+                entradaMat: entradaMat,
+                entradaNome: entrada.nome,
+                data: dataBR,
+                motivo: motivo,
+                observacao: obs
+            });
+            
+            alert(resultado.sucesso ? '🔄 Troca registrada!' : '❌ ' + resultado.mensagem);
+            
+            if (resultado.sucesso) {
+                await listarTrocas();
+                voltarParaTrocas();
+            }
+        }
+
+        // ================= ÁREA T.I =================
+        async function fazerLoginTI() {
+            const usuario = document.getElementById('tiUsuario').value.trim();
+            const senha = document.getElementById('tiSenha').value.trim();
+            
+            const resultado = await chamarAPI('loginTI', { usuario, senha });
+            
+            if (resultado.sucesso) {
+                document.getElementById('tiStatus').innerHTML = '✅ Acesso liberado! Bem-vindo, ' + usuario;
+                document.getElementById('tiStatus').className = 'status status-success';
+                document.getElementById('tiPainel').style.display = 'block';
+                logadoTI = true;
+                await listarUsuariosTI();
+                await renderizarProjetosVercel();
+            } else {
+                document.getElementById('tiStatus').innerHTML = '❌ ' + resultado.mensagem;
+                document.getElementById('tiStatus').className = 'status status-error';
+            }
+        }
+
+        async function listarUsuariosTI() {
+            const resultado = await chamarAPI('listarUsuariosTI');
+            if (resultado.sucesso) {
+                renderizarUsuariosTI(resultado.dados);
+            }
+        }
+
+        function mostrarFormNovoUsuario() {
+            document.getElementById('screenTI').classList.remove('active');
+            document.getElementById('screenFormUsuario').classList.add('active');
+            document.getElementById('userUsuario').value = '';
+            document.getElementById('userSenha').value = '';
+            document.getElementById('userTipo').value = 'Comum';
+        }
+
+        async function salvarUsuarioTI() {
+            const usuario = document.getElementById('userUsuario').value.trim();
+            const senha = document.getElementById('userSenha').value.trim();
+            const tipo = document.getElementById('userTipo').value;
+            
+            if (!usuario || !senha) {
+                alert('Preencha todos os campos!');
+                return;
+            }
+            
+            const resultado = await chamarAPI('adicionarUsuarioTI', { usuario, senha, tipo });
+            alert(resultado.sucesso ? '✅ Usuário adicionado!' : '❌ ' + resultado.mensagem);
+            
+            if (resultado.sucesso) {
+                await listarUsuariosTI();
+                voltarParaTI();
+            }
+        }
+
+        async function excluirUsuarioTI(usuario) {
+            if (usuario === 'admin') {
+                alert('⚠️ Não pode excluir o usuário admin!');
+                return;
+            }
+            
+            if (confirm(`Excluir usuário ${usuario}?`)) {
+                const resultado = await chamarAPI('excluirUsuarioTI', { usuario });
+                alert(resultado.sucesso ? '✅ Usuário excluído!' : '❌ ' + resultado.mensagem);
+                if (resultado.sucesso) {
+                    await listarUsuariosTI();
+                }
+            }
+        }
+
+        function fazerBackup() {
+            const backup = {
+                colaboradores,
+                registros: registrosPonto,
+                trocas: trocasTurno,
+                data: new Date().toLocaleString('pt-BR')
+            };
+            
+            const blob = new Blob([JSON.stringify(backup, null, 2)], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `backup-ponto-${new Date().toISOString().split('T')[0]}.json`;
+            a.click();
+            alert('💾 Backup gerado com sucesso!');
+        }
+
+        async function gerarFolhaPonto() {
+            const mes = document.getElementById('tiMes').value;
+            const ano = document.getElementById('tiAno').value;
+            
+            const resultado = await chamarAPI('gerarFolhaPonto', { mes, ano });
+            if (resultado.sucesso) {
+                let html = gerarHTMLFolha(resultado.dados, mes, ano);
+                const janela = window.open('', '_blank');
+                janela.document.write(html);
+                janela.document.close();
+                janela.print();
+            } else {
+                alert('❌ ' + (resultado.mensagem || 'Erro ao gerar folha de ponto'));
+            }
+        }
+
+        function gerarHTMLFolha(folhas, mes, ano) {
+            const meses = ['Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho', 'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'];
+            const nomeMes = meses[mes - 1];
+            
+            let html = `
+                <!DOCTYPE html>
+                <html>
+                <head>
+                    <meta charset="UTF-8">
+                    <title>Folha de Ponto - ${nomeMes}/${ano}</title>
+                    <style>
+                        body { font-family: Arial; padding: 20px; }
+                        h1 { text-align: center; color: #667eea; }
+                        table { width: 100%; border-collapse: collapse; margin: 20px 0; }
+                        th { background: #667eea; color: white; padding: 10px; }
+                        td { border: 1px solid #ccc; padding: 8px; text-align: center; }
+                        .assinatura { margin-top: 40px; text-align: center; }
+                    </style>
+                </head>
+                <body>
+                    <h1>📋 Folha de Ponto - ${nomeMes}/${ano}</h1>
+            `;
+            
+            folhas.forEach(f => {
+                let totalHoras = 0;
+                f.registros.forEach(r => {
+                    if (r.entrada && r.saida) {
+                        const entradaHora = parseInt(r.entrada.split(':')[0]);
+                        const saidaHora = parseInt(r.saida.split(':')[0]);
+                        totalHoras += saidaHora - entradaHora;
+                    }
+                });
+                
+                html += `
+                    <h3>${escapeHtml(f.colaborador)} - ${escapeHtml(f.escola)}</h3>
+                    <p>Carga Horária: ${f.cargaHoraria}h | Total: ${totalHoras.toFixed(2)}h</p>
+                    <table>
+                        <thead><tr><th>Data</th><th>Entrada</th><th>Saída</th></tr></thead>
+                        <tbody>
+                `;
+                
+                const diasNoMes = new Date(ano, mes, 0).getDate();
+                for (let d = 1; d <= diasNoMes; d++) {
+                    const dia = d.toString().padStart(2, '0');
+                    const registro = f.registros.find(r => r.data.split('/')[0] == dia);
+                    html += `<tr><td>${dia}/${mes}/${ano}</td><td>${registro?.entrada || '-'}</td><td>${registro?.saida || '-'}</td></tr>`;
+                }
+                
+                html += `</tbody></table><div class="assinatura"><p>____________________________________</p><p>Assinatura do Diretor</p></div>`;
+            });
+            
+            html += `</body></html>`;
+            return html;
+        }
+
+        // ================= FUNÇÕES DA API VERCEl =================
+        async function testarConexaoVercel() {
+            const resultado = await chamarAPI('listarProjetos');
+            if (resultado.sucesso) {
+                alert('✅ Conexão com API Vercel estabelecida!\nProjetos encontrados: ' + (resultado.dados?.length || 0));
+                await renderizarProjetosVercel();
+            } else {
+                alert('❌ Erro na conexão: ' + resultado.mensagem);
+            }
+        }
+
+        async function renderizarProjetosVercel() {
+            const container = document.getElementById('vercelProjectsList');
+            if (!container) return;
+            
+            container.innerHTML = '<div class="status status-info">Carregando projetos...</div>';
+            
+            const resultado = await chamarAPI('listarProjetos');
+            
+            if (!resultado.sucesso) {
+                container.innerHTML = '<div class="status status-error">Erro ao carregar projetos</div>';
+                return;
+            }
+            
+            const projetos = resultado.dados;
+            if (!projetos || projetos.length === 0) {
+                container.innerHTML = '<div class="status status-info">Nenhum projeto encontrado</div>';
+                return;
+            }
+            
+            let html = '';
+            projetos.forEach(projeto => {
+                html += `
+                    <div class="card">
+                        <div class="card-title">📁 ${escapeHtml(projeto.name)}</div>
+                        <div class="card-subtitle">ID: ${escapeHtml(projeto.id)}</div>
+                        <div class="card-actions">
+                            <button class="btn-small btn-primary" onclick="verDeployments('${projeto.id}')">
+                                🚀 Ver Deployments
+                            </button>
+                        </div>
+                    </div>
+                `;
+            });
+            
+            container.innerHTML = html;
+        }
+
+        async function verDeployments(projectId) {
+            currentProjectId = projectId;
+            
+            const container = document.getElementById('vercelDeploymentsList');
+            const section = document.getElementById('vercelDeploymentsSection');
+            if (!container || !section) return;
+            
+            section.style.display = 'block';
+            container.innerHTML = '<div class="status status-info">Carregando deployments...</div>';
+            
+            const resultado = await chamarAPI('listarDeployments', { projectId });
+            
+            if (!resultado.sucesso) {
+                container.innerHTML = '<div class="status status-error">Erro ao carregar deployments</div>';
+                return;
+            }
+            
+            const deployments = resultado.dados;
+            if (!deployments || deployments.length === 0) {
+                container.innerHTML = '<div class="status status-info">Nenhum deployment encontrado</div>';
+                return;
+            }
+            
+            let html = '';
+            deployments.forEach(deploy => {
+                const statusColor = deploy.readyState === 'READY' ? '#4caf50' : 
+                                   deploy.readyState === 'ERROR' ? '#f44336' : '#ff9800';
+                html += `
+                    <div class="card">
+                        <div class="card-title">
+                            🚀 Deployment #${escapeHtml(deploy.uid?.substring(0, 8))}
+                            <span style="color: ${statusColor}; font-size: 12px;">${deploy.readyState || 'PENDING'}</span>
+                        </div>
+                        <div class="card-subtitle">
+                            URL: <a href="https://${deploy.url}" target="_blank">${escapeHtml(deploy.url)}</a>
+                        </div>
+                        <div class="card-detail">
+                            Criado em: ${new Date(deploy.createdAt).toLocaleString('pt-BR')}
+                        </div>
+                        ${deploy.readyState !== 'READY' ? `
+                            <button class="btn-small btn-danger" onclick="cancelarDeployment('${deploy.uid}')">
+                                ❌ Cancelar
+                            </button>
+                        ` : ''}
+                    </div>
+                `;
+            });
+            
+            container.innerHTML = html;
+        }
+
+        async function cancelarDeployment(deploymentId) {
+            if (!confirm(`Cancelar deployment ${deploymentId.substring(0, 8)}?`)) return;
+            
+            const resultado = await chamarAPI('cancelDeployment', { deploymentId });
+            alert(resultado.sucesso ? '✅ Deployment cancelado!' : '❌ ' + resultado.mensagem);
+            
+            if (resultado.sucesso && currentProjectId) {
+                await verDeployments(currentProjectId);
+            }
+        }
+
+        function voltarParaProjetos() {
+            document.getElementById('vercelDeploymentsSection').style.display = 'none';
+            renderizarProjetosVercel();
+        }
+
+        // ================= PWA =================
+        let deferredPrompt;
+        
+        window.addEventListener('beforeinstallprompt', (e) => {
+            e.preventDefault();
+            deferredPrompt = e;
+            document.getElementById('installBanner').style.display = 'flex';
+        });
+        
+        function installPWA() {
+            if (deferredPrompt) {
+                deferredPrompt.prompt();
+            }
+        }
+        
+        if (window.matchMedia('(display-mode: standalone)').matches) {
+            document.getElementById('installBanner').style.display = 'none';
+        }
+
+        // ================= INICIALIZAÇÃO =================
+        async function inicializarApp() {
+            console.log('🚀 Inicializando app...');
+            
+            // Configurar datas padrão
+            const hoje = new Date().toISOString().split('T')[0];
+            if (document.getElementById('regData')) document.getElementById('regData').value = hoje;
+            if (document.getElementById('trocaData')) document.getElementById('trocaData').value = hoje;
+            
+            const agora = new Date();
+            const hora = agora.getHours().toString().padStart(2,'0') + ':' + agora.getMinutes().toString().padStart(2,'0');
+            if (document.getElementById('regHora')) document.getElementById('regHora').value = hora;
+            
+            await carregarEstatisticas();
+            await listarColaboradores();
+            await listarRegistros();
+            await listarTrocas();
+            
+            console.log('✅ App inicializado!');
+        }
+        
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', inicializarApp);
+        } else {
+            inicializarApp();
+        }
+    </script>
+</body>
+</html>

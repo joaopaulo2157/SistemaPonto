@@ -2,9 +2,9 @@
 // Sistema de Ponto Eletrônico - Backend API com Integração Vercel
 
 // ================= CONFIGURAÇÕES =================
-const VERCEL_API_KEY = 'prj_c70DBh9jjLO7Cq4B85Vy1c72xJ88'; // Sua chave API da Vercel
-const TEAM_ID = ''; // Se estiver em uma equipe, coloque o ID aqui (ex: 'team_xxxxxxxxx')
-const PROJECT_ID = 'sistema-ponto'; // ID do seu projeto na Vercel
+const VERCEL_API_KEY = 'prj_c70DBh9jjLO7Cq4B85Vy1c72xJ88';
+const TEAM_ID = '';
+const PROJECT_ID = 'sistema-ponto';
 
 // URLs da API Vercel
 const VERCEL_API_URL = 'https://api.vercel.com';
@@ -34,15 +34,10 @@ let usuariosTI = [
 let biometria = [];
 
 // ================= FUNÇÕES DA API VERCEl =================
-
-/**
- * Faz uma requisição para a API da Vercel
- */
 async function chamarVercelAPI(endpoint, method = 'GET', body = null) {
   try {
     let url = `${VERCEL_API_URL}${endpoint}`;
     
-    // Adicionar teamId se existir
     if (TEAM_ID && !url.includes('teamId=')) {
       url += (url.includes('?') ? '&' : '?') + `teamId=${TEAM_ID}`;
     }
@@ -61,7 +56,7 @@ async function chamarVercelAPI(endpoint, method = 'GET', body = null) {
     
     if (!response.ok) {
       console.error('Erro na API Vercel:', data);
-      throw new Error(data.error?.message || 'Erro na requisição');
+      return { success: false, error: data.error?.message || 'Erro na requisição' };
     }
     
     return { success: true, data };
@@ -71,52 +66,20 @@ async function chamarVercelAPI(endpoint, method = 'GET', body = null) {
   }
 }
 
-/**
- * Lista todos os projetos
- */
 async function listarProjetos() {
   return await chamarVercelAPI('/v1/projects');
 }
 
-/**
- * Lista deployments de um projeto
- */
-async function listarDeployments(projectId = PROJECT_ID, limit = 10) {
+async function listarDeployments(projectId, limit = 10) {
   const endpoint = `/v6/deployments${projectId ? `?projectId=${projectId}&limit=${limit}` : `?limit=${limit}`}`;
   return await chamarVercelAPI(endpoint);
 }
 
-/**
- * Cria um novo deployment
- */
-async function criarDeployment(projectId, files) {
-  const body = {
-    name: projectId,
-    files: files,
-    projectSettings: {
-      framework: 'nextjs'
-    }
-  };
-  return await chamarVercelAPI('/v6/deployments', 'POST', body);
-}
-
-/**
- * Obtém informações de um deployment específico
- */
-async function getDeployment(deploymentId) {
-  return await chamarVercelAPI(`/v6/deployments/${deploymentId}`);
-}
-
-/**
- * Cancela um deployment
- */
 async function cancelDeployment(deploymentId) {
   return await chamarVercelAPI(`/v12/deployments/${deploymentId}/cancel`, 'PATCH');
 }
 
-// ================= FUNÇÕES DO SISTEMA DE PONTO =================
-
-// Função CORS
+// ================= FUNÇÃO CORS =================
 function setCorsHeaders(res, origin) {
   const allowedOrigins = [
     'https://ponto-app.vercel.app',
@@ -136,6 +99,7 @@ function setCorsHeaders(res, origin) {
   res.setHeader('Access-Control-Max-Age', '86400');
 }
 
+// ================= HANDLER PRINCIPAL =================
 export default async function handler(req, res) {
   // Configurar CORS
   setCorsHeaders(res, req.headers.origin);
@@ -157,8 +121,6 @@ export default async function handler(req, res) {
 
   try {
     // ================= FUNÇÕES DA API VERCEl =================
-    
-    // Listar projetos
     if (acao === 'listarProjetos') {
       const resultado = await listarProjetos();
       if (resultado.success) {
@@ -167,7 +129,6 @@ export default async function handler(req, res) {
       return res.status(500).json({ sucesso: false, mensagem: resultado.error });
     }
     
-    // Listar deployments
     if (acao === 'listarDeployments') {
       const { projectId, limit } = dados;
       const resultado = await listarDeployments(projectId, limit);
@@ -177,33 +138,6 @@ export default async function handler(req, res) {
       return res.status(500).json({ sucesso: false, mensagem: resultado.error });
     }
     
-    // Criar deployment
-    if (acao === 'criarDeployment') {
-      const { projectId, files } = dados;
-      if (!projectId || !files) {
-        return res.status(400).json({ sucesso: false, mensagem: 'projectId e files são obrigatórios' });
-      }
-      const resultado = await criarDeployment(projectId, files);
-      if (resultado.success) {
-        return res.status(200).json({ sucesso: true, dados: resultado.data, mensagem: 'Deployment criado!' });
-      }
-      return res.status(500).json({ sucesso: false, mensagem: resultado.error });
-    }
-    
-    // Obter deployment
-    if (acao === 'getDeployment') {
-      const { deploymentId } = dados;
-      if (!deploymentId) {
-        return res.status(400).json({ sucesso: false, mensagem: 'deploymentId é obrigatório' });
-      }
-      const resultado = await getDeployment(deploymentId);
-      if (resultado.success) {
-        return res.status(200).json({ sucesso: true, dados: resultado.data });
-      }
-      return res.status(500).json({ sucesso: false, mensagem: resultado.error });
-    }
-    
-    // Cancelar deployment
     if (acao === 'cancelDeployment') {
       const { deploymentId } = dados;
       if (!deploymentId) {
@@ -462,9 +396,7 @@ export default async function handler(req, res) {
     // Ação não encontrada
     return res.status(404).json({ 
       sucesso: false, 
-      mensagem: `Ação '${acao}' não encontrada. Ações disponíveis: 
-      Vercel API: listarProjetos, listarDeployments, criarDeployment, getDeployment, cancelDeployment
-      Sistema: listarColaboradores, adicionarColaborador, editarColaborador, excluirColaborador, listarRegistros, registrarPonto, verificarBiometria, cadastrarBiometria, listarTrocas, registrarTroca, loginTI, listarUsuariosTI, adicionarUsuarioTI, excluirUsuarioTI, estatisticas, gerarFolhaPonto` 
+      mensagem: `Ação '${acao}' não encontrada` 
     });
 
   } catch (error) {

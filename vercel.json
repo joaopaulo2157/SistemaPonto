@@ -5,9 +5,6 @@
       "maxDuration": 10
     }
   },
-  "env": {
-    "VERCEL_API_KEY": "prj_c70DBh9jjLO7Cq4B85Vy1c72xJ88"
-  },
   "headers": [
     {
       "source": "/api/(.*)",

@@ -657,8 +657,10 @@
     <div class="footer-fixo"><p>Desenvolvido por <a onclick="abrirAreaTI(); return false;" style="cursor: pointer;">AlfaTech</a> - v5.0</p></div>
 
     <script>
+        // ================= CONFIGURAÇÃO =================
         const API_URL = 'https://sistema-ponto-seven.vercel.app/api/ponto';
         
+        // ================= DADOS LOCAIS =================
         let escolas = [
             { id: 1, nome: "CENTRO INFANTIL VEREADOR EVANDRO CARI", endereco: "", telefone: "" },
             { id: 2, nome: "EMEIF AUDALIO MACIANO DA SILVA", endereco: "", telefone: "" },
@@ -677,6 +679,8 @@
         let registrosPonto = [];
         let trocasTurno = [];
         let usuariosTI = [{ usuario: "admin", senha: "ti@2024", tipo: "Master" }];
+        
+        // ================= VARIÁVEIS DE ESTADO =================
         let stream = null;
         let logadoTI = false;
         let secaoAtualTI = '';
@@ -687,6 +691,24 @@
         let escolaEditando = null;
         let colaboradorEditando = null;
         
+        // ================= FUNÇÕES AUXILIARES =================
+        function mostrarLoading(msg) { 
+            document.getElementById('loadingMessage').textContent = msg || 'Processando...'; 
+            document.getElementById('loading').style.display = 'flex'; 
+        }
+        
+        function esconderLoading() { 
+            document.getElementById('loading').style.display = 'none'; 
+        }
+        
+        function escapeHtml(t) { 
+            if (!t) return ''; 
+            const d = document.createElement('div'); 
+            d.textContent = t; 
+            return d.innerHTML; 
+        }
+        
+        // ================= FUNÇÃO DE COMUNICAÇÃO COM API =================
         async function chamarAPI(acao, dados = {}) {
             try {
                 const url = `${API_URL}?acao=${acao}`;
@@ -698,40 +720,177 @@
                 if (!resposta.ok) throw new Error(`HTTP ${resposta.status}`);
                 return await resposta.json();
             } catch (erro) {
+                console.error(`Erro na API (${acao}):`, erro);
                 return { sucesso: false, mensagem: 'Erro de conexão: ' + erro.message };
             }
         }
         
-        function mostrarLoading(msg) { document.getElementById('loadingMessage').textContent = msg || 'Processando...'; document.getElementById('loading').style.display = 'flex'; }
-        function esconderLoading() { document.getElementById('loading').style.display = 'none'; }
-        function escapeHtml(t) { if (!t) return ''; const d = document.createElement('div'); d.textContent = t; return d.innerHTML; }
+        // ================= FUNÇÕES DE CARREGAMENTO DE DADOS =================
+        async function carregarColaboradores() { 
+            const r = await chamarAPI('listarColaboradores'); 
+            if (r.sucesso) { 
+                colaboradores = r.dados || []; 
+                atualizarSelects(); 
+            } 
+        }
         
-        function mostrarRecuperarSenha() { document.getElementById('screenLogin').classList.remove('active'); document.getElementById('screenRecuperar').classList.add('active'); }
-        function voltarParaLogin() { document.getElementById('screenRecuperar').classList.remove('active'); document.getElementById('screenEscola').classList.remove('active'); document.getElementById('screenLogin').classList.add('active'); }
+        async function carregarRegistros() { 
+            const r = await chamarAPI('listarRegistros'); 
+            if (r.sucesso) { 
+                registrosPonto = r.dados || []; 
+                renderizarRegistrosTI(); 
+            } 
+        }
+        
+        async function carregarTrocas() { 
+            const r = await chamarAPI('listarTrocas'); 
+            if (r.sucesso) { 
+                trocasTurno = r.dados || []; 
+                renderizarTrocasTI(); 
+            } 
+        }
+        
+        // ================= FUNÇÕES DE RENDERIZAÇÃO =================
+        function renderizarEscolasTI() {
+            const container = document.getElementById('escolasListTI');
+            if (!container) return;
+            if (escolas.length === 0) { 
+                container.innerHTML = '<div class="status status-info">Nenhuma escola cadastrada</div>'; 
+                return; 
+            }
+            let html = '';
+            escolas.forEach(e => { 
+                html += `<div class="card"><div class="card-title">🏫 ${escapeHtml(e.nome)}</div><div class="card-subtitle">${escapeHtml(e.endereco || '-')}</div><div class="card-actions"><button class="btn-small btn-primary" onclick="editarEscola(${e.id})">✏️</button><button class="btn-small btn-danger" onclick="excluirEscola(${e.id})">❌</button></div></div>`; 
+            });
+            container.innerHTML = html;
+        }
+        
+        function renderizarColaboradoresTI() {
+            const container = document.getElementById('colaboradoresListTI');
+            if (!container) return;
+            if (!colaboradores.length) { 
+                container.innerHTML = '<div class="status status-info">Nenhum colaborador cadastrado</div>'; 
+                return; 
+            }
+            let html = '';
+            colaboradores.forEach(col => { 
+                html += `<div class="card"><div class="card-title">${escapeHtml(col.nome)}</div><div class="card-subtitle">${escapeHtml(col.email || '-')} • Mat: ${escapeHtml(col.matricula)}</div><div class="card-detail">${escapeHtml(col.escola || '-')} • ${col.cargaHoraria || 160}h</div><div class="card-actions"><button class="btn-small btn-primary" onclick="editarColaborador(${col.id})">✏️</button><button class="btn-small btn-danger" onclick="excluirColaborador(${col.id})">❌</button></div></div>`; 
+            });
+            container.innerHTML = html;
+        }
+        
+        function renderizarRegistrosTI() {
+            const container = document.getElementById('registrosListTI');
+            if (!container) return;
+            if (!registrosPonto.length) { 
+                container.innerHTML = '<div class="status status-info">Nenhum registro de ponto</div>'; 
+                return; 
+            }
+            let html = '';
+            [...registrosPonto].reverse().slice(0, 30).forEach(r => { 
+                html += `<div class="card"><div class="card-title">${escapeHtml(r.nome)}</div><div class="card-subtitle">${r.data} • ${r.entrada || '-'} ${r.saida ? '→ ' + r.saida : ''}</div></div>`; 
+            });
+            container.innerHTML = html;
+        }
+        
+        function renderizarTrocasTI() {
+            const container = document.getElementById('trocasListTI');
+            if (!container) return;
+            if (!trocasTurno.length) { 
+                container.innerHTML = '<div class="status status-info">Nenhuma troca de turno</div>'; 
+                return; 
+            }
+            let html = '';
+            trocasTurno.slice().reverse().forEach(t => { 
+                html += `<div class="card"><div class="card-title">🔄 Troca de Turno</div><div class="card-subtitle">${escapeHtml(t.saidaNome)} → ${escapeHtml(t.entradaNome)}</div><div class="card-detail">${t.data} • ${t.motivo}</div></div>`; 
+            });
+            container.innerHTML = html;
+        }
+        
+        function renderizarUsuariosTI(users) {
+            const container = document.getElementById('usuariosTIList');
+            if (!container) return;
+            if (!users || !users.length) { 
+                container.innerHTML = '<div class="status status-info">Nenhum usuário cadastrado</div>'; 
+                return; 
+            }
+            let html = '';
+            users.forEach(u => { 
+                html += `<div class="card"><div class="card-title">👤 ${escapeHtml(u.usuario)}</div><div class="card-subtitle">${u.tipo}</div><div class="card-actions"><button class="btn-small btn-danger" onclick="excluirUsuarioTI('${escapeHtml(u.usuario)}')">❌</button></div></div>`; 
+            });
+            container.innerHTML = html;
+        }
+        
+        function atualizarSelects() {
+            const selEscola = document.getElementById('colabEscolaSelect');
+            if (selEscola) { 
+                selEscola.innerHTML = '<option value="">Selecione a escola</option>'; 
+                escolas.forEach(e => { 
+                    selEscola.innerHTML += `<option value="${escapeHtml(e.nome)}">${escapeHtml(e.nome)}</option>`; 
+                }); 
+            }
+            
+            const saida = document.getElementById('trocaSaida');
+            const entrada = document.getElementById('trocaEntrada');
+            if (saida && entrada) {
+                saida.innerHTML = '<option value="">Selecione</option>';
+                entrada.innerHTML = '<option value="">Selecione</option>';
+                colaboradores.forEach(c => { 
+                    saida.innerHTML += `<option value="${c.matricula}">${escapeHtml(c.nome)} - ${c.matricula}</option>`; 
+                    entrada.innerHTML += `<option value="${c.matricula}">${escapeHtml(c.nome)} - ${c.matricula}</option>`; 
+                });
+            }
+        }
+        
+        // ================= AUTENTICAÇÃO DO COLABORADOR =================
+        function mostrarRecuperarSenha() { 
+            document.getElementById('screenLogin').classList.remove('active'); 
+            document.getElementById('screenRecuperar').classList.add('active'); 
+        }
+        
+        function voltarParaLogin() { 
+            document.getElementById('screenRecuperar').classList.remove('active'); 
+            document.getElementById('screenEscola').classList.remove('active'); 
+            document.getElementById('screenLogin').classList.add('active'); 
+        }
         
         function fazerLogin() {
             const email = document.getElementById('loginEmail').value.trim();
             const senha = document.getElementById('loginSenha').value.trim();
-            if (!email || !senha) { alert('Preencha email e senha!'); return; }
+            if (!email || !senha) { 
+                alert('Preencha email e senha!'); 
+                return; 
+            }
             const usuario = usuarios.find(u => u.email === email && u.senha === senha);
-            if (!usuario) { alert('❌ Email ou senha incorretos!'); return; }
+            if (!usuario) { 
+                alert('❌ Email ou senha incorretos!'); 
+                return; 
+            }
             usuarioLogado = usuario;
             const escolasUsuario = escolas.filter(e => e.id === usuario.escolaId);
-            if (escolasUsuario.length === 0) { alert('❌ Você não está vinculado a nenhuma escola.'); return; }
+            if (escolasUsuario.length === 0) { 
+                alert('❌ Você não está vinculado a nenhuma escola.'); 
+                return; 
+            }
             if (escolasUsuario.length === 1) {
                 escolaSelecionada = escolasUsuario[0];
                 iniciarPontoAutomatico();
             } else {
                 document.getElementById('welcomeNome').textContent = usuario.nome;
                 let html = '';
-                escolasUsuario.forEach(e => { html += `<div class="escola-card" onclick="selecionarEscola(${e.id})"><h3>${escapeHtml(e.nome)}</h3><p>Clique para selecionar</p></div>`; });
+                escolasUsuario.forEach(e => { 
+                    html += `<div class="escola-card" onclick="selecionarEscola(${e.id})"><h3>${escapeHtml(e.nome)}</h3><p>Clique para selecionar</p></div>`; 
+                });
                 document.getElementById('escolasList').innerHTML = html;
                 document.getElementById('screenLogin').classList.remove('active');
                 document.getElementById('screenEscola').classList.add('active');
             }
         }
         
-        function selecionarEscola(id) { escolaSelecionada = escolas.find(e => e.id === id); if (escolaSelecionada) iniciarPontoAutomatico(); }
+        function selecionarEscola(id) { 
+            escolaSelecionada = escolas.find(e => e.id === id); 
+            if (escolaSelecionada) iniciarPontoAutomatico(); 
+        }
         
         function iniciarPontoAutomatico() {
             document.getElementById('screenEscola').classList.remove('active');
@@ -739,7 +898,7 @@
             document.getElementById('cameraEscola').textContent = escolaSelecionada.nome;
             document.getElementById('cameraData').textContent = new Date().toLocaleDateString('pt-BR');
             document.getElementById('manualSection').style.display = 'none';
-            document.getElementById('cameraStatus').innerHTML = '🔍 Posicione o rosto no círculo';
+            document.getElementById('cameraStatus').innerHTML = '🔍 Posicione o rosto no círculo para registro automático';
             document.getElementById('cameraStatus').className = 'status status-info';
             document.getElementById('screenCamera').classList.add('active');
             iniciarCamera();
@@ -748,7 +907,9 @@
         function sairParaLogin() {
             pararCamera();
             if (scanInterval) clearInterval(scanInterval);
-            usuarioLogado = null; escolaSelecionada = null; tentativasReconhecimento = 0;
+            usuarioLogado = null;
+            escolaSelecionada = null;
+            tentativasReconhecimento = 0;
             document.getElementById('screenCamera').classList.remove('active');
             document.getElementById('screenSucesso').classList.remove('active');
             document.getElementById('screenManual').classList.remove('active');
@@ -759,7 +920,7 @@
         
         function voltarParaCamera() {
             document.getElementById('screenManual').classList.remove('active');
-            document.getElementById('cameraStatus').innerHTML = '🔍 Posicione o rosto no círculo';
+            document.getElementById('cameraStatus').innerHTML = '🔍 Posicione o rosto no círculo para registro automático';
             document.getElementById('cameraStatus').className = 'status status-info';
             document.getElementById('manualSection').style.display = 'none';
             document.getElementById('screenCamera').classList.add('active');
@@ -779,7 +940,12 @@
         async function registrarPontoManual() {
             const tipo = document.getElementById('manualTipo').value;
             const obs = document.getElementById('manualObs').value.trim();
-            const dados = { matricula: usuarioLogado.matricula || usuarioLogado.email, tipo: tipo, observacao: obs, origem: 'Manual' };
+            const dados = { 
+                matricula: usuarioLogado.matricula || usuarioLogado.email, 
+                tipo: tipo, 
+                observacao: obs, 
+                origem: 'Manual' 
+            };
             mostrarLoading('Registrando ponto...');
             const r = await chamarAPI('registrarPonto', dados);
             esconderLoading();
@@ -787,21 +953,36 @@
                 document.getElementById('sucessoMensagem').innerHTML = r.mensagem;
                 document.getElementById('screenManual').classList.remove('active');
                 document.getElementById('screenSucesso').classList.add('active');
-            } else alert('❌ ' + r.mensagem);
+            } else { 
+                alert('❌ ' + r.mensagem); 
+            }
         }
         
         function enviarRecuperacao() {
             const email = document.getElementById('recuperarEmail').value.trim();
-            if (!email) { alert('Digite seu email!'); return; }
-            alert('✅ Link enviado para ' + email);
+            if (!email) { 
+                alert('Digite seu email!'); 
+                return; 
+            }
+            alert('✅ Link de recuperação enviado para ' + email);
             voltarParaLogin();
         }
         
+        // ================= CÂMERA E RECONHECIMENTO FACIAL =================
         function iniciarCamera() {
             if (navigator.mediaDevices?.getUserMedia) {
                 navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user' } })
-                    .then(s => { stream = s; document.getElementById('video').srcObject = s; document.getElementById('video').play(); iniciarReconhecimentoAutomatico(); })
-                    .catch(() => { document.getElementById('cameraStatus').innerHTML = '❌ Erro na câmera. Use registro manual.'; document.getElementById('cameraStatus').className = 'status status-error'; document.getElementById('manualSection').style.display = 'block'; });
+                    .then(s => { 
+                        stream = s; 
+                        document.getElementById('video').srcObject = s; 
+                        document.getElementById('video').play(); 
+                        iniciarReconhecimentoAutomatico(); 
+                    })
+                    .catch(() => { 
+                        document.getElementById('cameraStatus').innerHTML = '❌ Erro na câmera. Use registro manual.'; 
+                        document.getElementById('cameraStatus').className = 'status status-error'; 
+                        document.getElementById('manualSection').style.display = 'block'; 
+                    });
             } else {
                 document.getElementById('cameraStatus').innerHTML = '❌ Câmera não suportada. Use registro manual.';
                 document.getElementById('cameraStatus').className = 'status status-error';
@@ -818,16 +999,21 @@
                     const video = document.getElementById('video');
                     if (video.videoWidth) {
                         const canvas = document.createElement('canvas');
-                        canvas.width = video.videoWidth; canvas.height = video.videoHeight;
+                        canvas.width = video.videoWidth; 
+                        canvas.height = video.videoHeight;
                         const ctx = canvas.getContext('2d');
-                        ctx.translate(canvas.width, 0); ctx.scale(-1, 1);
+                        ctx.translate(canvas.width, 0); 
+                        ctx.scale(-1, 1);
                         ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
                         const foto = canvas.toDataURL('image/jpeg', 0.8);
                         let hash = 0;
                         for (let i = 0; i < foto.length; i++) hash = ((hash << 5) - hash) + foto.charCodeAt(i);
                         const hashAtual = (hash & hash).toString(36);
                         if (usuarioLogado.hash && usuarioLogado.hash === hashAtual) registrarPontoAutomatico();
-                        else if (Math.random() > 0.6) { usuarioLogado.hash = hashAtual; registrarPontoAutomatico(); }
+                        else if (Math.random() > 0.6) { 
+                            usuarioLogado.hash = hashAtual; 
+                            registrarPontoAutomatico(); 
+                        }
                     }
                     if (tentativasReconhecimento > 30) {
                         clearInterval(scanInterval);
@@ -844,7 +1030,11 @@
             const hoje = new Date().toLocaleDateString('pt-BR');
             const matricula = usuarioLogado.matricula || usuarioLogado.email;
             const existe = registrosPonto.find(r => r.matricula === matricula && r.data === hoje && !r.saida);
-            const dados = { matricula: matricula, tipo: existe ? 'saida' : 'entrada', origem: 'Facial' };
+            const dados = { 
+                matricula: matricula, 
+                tipo: existe ? 'saida' : 'entrada', 
+                origem: 'Facial Automático' 
+            };
             const r = await chamarAPI('registrarPonto', dados);
             if (r.sucesso) {
                 document.getElementById('sucessoMensagem').innerHTML = r.mensagem;
@@ -858,69 +1048,18 @@
             }
         }
         
-        function pararCamera() { if (stream) { stream.getTracks().forEach(t => t.stop()); stream = null; } if (scanInterval) clearInterval(scanInterval); }
-        
-        async function listarColaboradores() { const r = await chamarAPI('listarColaboradores'); if (r.sucesso) { colaboradores = r.dados; atualizarSelects(); } }
-        async function listarRegistros() { const r = await chamarAPI('listarRegistros'); if (r.sucesso) { registrosPonto = r.dados; renderizarRegistrosTI(); } }
-        async function listarTrocas() { const r = await chamarAPI('listarTrocas'); if (r.sucesso) { trocasTurno = r.dados; renderizarTrocasTI(); } }
-        
-        function renderizarEscolasTI() {
-            const c = document.getElementById('escolasListTI');
-            if (!c) return;
-            if (escolas.length === 0) { c.innerHTML = '<div class="status status-info">Nenhuma escola</div>'; return; }
-            let html = '';
-            escolas.forEach(e => { html += `<div class="card"><div class="card-title">🏫 ${escapeHtml(e.nome)}</div><div class="card-subtitle">${escapeHtml(e.endereco || '-')}</div><div class="card-actions"><button class="btn-small btn-primary" onclick="editarEscola(${e.id})">✏️</button><button class="btn-small btn-danger" onclick="excluirEscola(${e.id})">❌</button></div></div>`; });
-            c.innerHTML = html;
+        function pararCamera() { 
+            if (stream) { 
+                stream.getTracks().forEach(t => t.stop()); 
+                stream = null; 
+            } 
+            if (scanInterval) { 
+                clearInterval(scanInterval); 
+                scanInterval = null; 
+            } 
         }
         
-        function renderizarColaboradoresTI() {
-            const c = document.getElementById('colaboradoresListTI');
-            if (!c) return;
-            if (!colaboradores.length) { c.innerHTML = '<div class="status status-info">Nenhum colaborador</div>'; return; }
-            let html = '';
-            colaboradores.forEach(col => { html += `<div class="card"><div class="card-title">${escapeHtml(col.nome)}</div><div class="card-subtitle">${escapeHtml(col.email || '-')} • ${escapeHtml(col.matricula)}</div><div class="card-detail">${escapeHtml(col.escola || '-')} • ${col.cargaHoraria || 160}h</div><div class="card-actions"><button class="btn-small btn-primary" onclick="editarColaborador(${col.id})">✏️</button><button class="btn-small btn-danger" onclick="excluirColaborador(${col.id})">❌</button></div></div>`; });
-            c.innerHTML = html;
-        }
-        
-        function renderizarRegistrosTI() {
-            const c = document.getElementById('registrosListTI');
-            if (!c) return;
-            if (!registrosPonto.length) { c.innerHTML = '<div class="status status-info">Nenhum registro</div>'; return; }
-            let html = '';
-            [...registrosPonto].reverse().slice(0, 30).forEach(r => { html += `<div class="card"><div class="card-title">${escapeHtml(r.nome)}</div><div class="card-subtitle">${r.data} • ${r.entrada || '-'} ${r.saida ? '→ ' + r.saida : ''}</div></div>`; });
-            c.innerHTML = html;
-        }
-        
-        function renderizarTrocasTI() {
-            const c = document.getElementById('trocasListTI');
-            if (!c) return;
-            if (!trocasTurno.length) { c.innerHTML = '<div class="status status-info">Nenhuma troca</div>'; return; }
-            let html = '';
-            trocasTurno.slice().reverse().forEach(t => { html += `<div class="card"><div class="card-title">🔄 Troca</div><div class="card-subtitle">${escapeHtml(t.saidaNome)} → ${escapeHtml(t.entradaNome)}</div><div class="card-detail">${t.data} • ${t.motivo}</div></div>`; });
-            c.innerHTML = html;
-        }
-        
-        function renderizarUsuariosTI(users) {
-            const c = document.getElementById('usuariosTIList');
-            if (!c) return;
-            if (!users.length) { c.innerHTML = '<div class="status status-info">Nenhum usuário</div>'; return; }
-            let html = '';
-            users.forEach(u => { html += `<div class="card"><div class="card-title">👤 ${escapeHtml(u.usuario)}</div><div class="card-subtitle">${u.tipo}</div><div class="card-actions"><button class="btn-small btn-danger" onclick="excluirUsuarioTI('${escapeHtml(u.usuario)}')">❌</button></div></div>`; });
-            c.innerHTML = html;
-        }
-        
-        function atualizarSelects() {
-            const selEscola = document.getElementById('colabEscolaSelect');
-            if (selEscola) { selEscola.innerHTML = '<option value="">Selecione a escola</option>'; escolas.forEach(e => { selEscola.innerHTML += `<option value="${escapeHtml(e.nome)}">${escapeHtml(e.nome)}</option>`; }); }
-            const saida = document.getElementById('trocaSaida');
-            const entrada = document.getElementById('trocaEntrada');
-            if (saida && entrada) {
-                saida.innerHTML = '<option value="">Selecione</option>';
-                entrada.innerHTML = '<option value="">Selecione</option>';
-                colaboradores.forEach(c => { saida.innerHTML += `<option value="${c.matricula}">${escapeHtml(c.nome)} - ${c.matricula}</option>`; entrada.innerHTML += `<option value="${c.matricula}">${escapeHtml(c.nome)} - ${c.matricula}</option>`; });
-            }
-        }
-        
+        // ================= ÁREA T.I =================
         function abrirAreaTI() {
             document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
             document.getElementById('screenTI').classList.add('active');
@@ -929,7 +1068,10 @@
             logadoTI = false;
         }
         
-        function fecharTI() { document.getElementById('screenTI').classList.remove('active'); document.getElementById('screenLogin').classList.add('active'); }
+        function fecharTI() { 
+            document.getElementById('screenTI').classList.remove('active'); 
+            document.getElementById('screenLogin').classList.add('active'); 
+        }
         
         function mostrarSecaoTI(secao) {
             document.querySelectorAll('.ti-section').forEach(s => s.classList.remove('active'));
@@ -940,7 +1082,10 @@
             if (secao === 'colaboradores') renderizarColaboradoresTI();
             if (secao === 'registros') renderizarRegistrosTI();
             if (secao === 'trocas') renderizarTrocasTI();
-            if (secao === 'usuarios') (async () => { const r = await chamarAPI('listarUsuariosTI'); if (r.sucesso) renderizarUsuariosTI(r.dados); })();
+            if (secao === 'usuarios') (async () => { 
+                const r = await chamarAPI('listarUsuariosTI'); 
+                if (r.sucesso) renderizarUsuariosTI(r.dados); 
+            })();
         }
         
         async function fazerLoginTI() {
@@ -952,12 +1097,15 @@
                 document.getElementById('tiStatus').className = 'status status-success';
                 document.getElementById('tiPainel').style.display = 'block';
                 logadoTI = true;
-                await listarColaboradores();
-                await listarRegistros();
-                await listarTrocas();
+                await carregarColaboradores();
+                await carregarRegistros();
+                await carregarTrocas();
                 renderizarEscolasTI();
                 mostrarSecaoTI('escolas');
-            } else { document.getElementById('tiStatus').innerHTML = '❌ ' + r.mensagem; document.getElementById('tiStatus').className = 'status status-error'; }
+            } else { 
+                document.getElementById('tiStatus').innerHTML = '❌ ' + r.mensagem; 
+                document.getElementById('tiStatus').className = 'status status-error'; 
+            }
         }
         
         function voltarParaTI() {
@@ -970,13 +1118,88 @@
             if (logadoTI) mostrarSecaoTI(secaoAtualTI || 'escolas');
         }
         
-        function mostrarFormEscola() { if (!logadoTI) { alert('Faça login!'); return; } document.getElementById('screenTI').classList.remove('active'); document.getElementById('screenFormEscola').classList.add('active'); document.getElementById('escolaNome').value = ''; document.getElementById('escolaEndereco').value = ''; document.getElementById('escolaTelefone').value = ''; escolaEditando = null; }
-        function editarEscola(id) { const e = escolas.find(e => e.id === id); if (!e) return; document.getElementById('screenTI').classList.remove('active'); document.getElementById('screenFormEscola').classList.add('active'); document.getElementById('escolaNome').value = e.nome; document.getElementById('escolaEndereco').value = e.endereco || ''; document.getElementById('escolaTelefone').value = e.telefone || ''; escolaEditando = id; }
-        function salvarEscola() { const nome = document.getElementById('escolaNome').value.trim(); if (!nome) { alert('Nome obrigatório!'); return; } if (escolaEditando) { const idx = escolas.findIndex(e => e.id === escolaEditando); if (idx !== -1) escolas[idx] = { ...escolas[idx], nome, endereco: document.getElementById('escolaEndereco').value, telefone: document.getElementById('escolaTelefone').value }; alert('✅ Escola editada!'); } else { escolas.push({ id: Date.now(), nome, endereco: document.getElementById('escolaEndereco').value, telefone: document.getElementById('escolaTelefone').value }); alert('✅ Escola adicionada!'); } escolaEditando = null; voltarParaTI(); renderizarEscolasTI(); atualizarSelects(); }
-        function excluirEscola(id) { if (confirm('Excluir escola?')) { escolas = escolas.filter(e => e.id !== id); alert('✅ Escola excluída!'); renderizarEscolasTI(); atualizarSelects(); } }
+        // ================= CRUD ESCOLAS =================
+        function mostrarFormEscola() { 
+            if (!logadoTI) { alert('Faça login!'); return; } 
+            document.getElementById('screenTI').classList.remove('active'); 
+            document.getElementById('screenFormEscola').classList.add('active'); 
+            document.getElementById('escolaNome').value = ''; 
+            document.getElementById('escolaEndereco').value = ''; 
+            document.getElementById('escolaTelefone').value = ''; 
+            escolaEditando = null; 
+        }
         
-        function mostrarFormColaborador() { if (!logadoTI) { alert('Faça login!'); return; } document.getElementById('screenTI').classList.remove('active'); document.getElementById('screenFormColaborador').classList.add('active'); atualizarSelects(); document.getElementById('colabNome').value = ''; document.getElementById('colabEmail').value = ''; document.getElementById('colabSenha').value = ''; document.getElementById('colabMatricula').value = ''; document.getElementById('colabCargo').value = ''; document.getElementById('colabDepartamento').value = ''; document.getElementById('colabCarga').value = '160'; colaboradorEditando = null; }
-        function editarColaborador(id) { const col = colaboradores.find(c => c.id == id); if (!col) return; document.getElementById('screenTI').classList.remove('active'); document.getElementById('screenFormColaborador').classList.add('active'); atualizarSelects(); document.getElementById('colabNome').value = col.nome || ''; document.getElementById('colabEmail').value = col.email || ''; document.getElementById('colabSenha').value = col.senha || ''; document.getElementById('colabMatricula').value = col.matricula || ''; document.getElementById('colabCargo').value = col.cargo || ''; document.getElementById('colabDepartamento').value = col.departamento || ''; document.getElementById('colabCarga').value = col.cargaHoraria || '160'; const sel = document.getElementById('colabEscolaSelect'); if (sel) sel.value = col.escola || ''; colaboradorEditando = id; }
+        function editarEscola(id) { 
+            const e = escolas.find(e => e.id === id); 
+            if (!e) return; 
+            document.getElementById('screenTI').classList.remove('active'); 
+            document.getElementById('screenFormEscola').classList.add('active'); 
+            document.getElementById('escolaNome').value = e.nome; 
+            document.getElementById('escolaEndereco').value = e.endereco || ''; 
+            document.getElementById('escolaTelefone').value = e.telefone || ''; 
+            escolaEditando = id; 
+        }
+        
+        function salvarEscola() { 
+            const nome = document.getElementById('escolaNome').value.trim(); 
+            if (!nome) { alert('Nome obrigatório!'); return; } 
+            if (escolaEditando) { 
+                const idx = escolas.findIndex(e => e.id === escolaEditando); 
+                if (idx !== -1) escolas[idx] = { ...escolas[idx], nome, endereco: document.getElementById('escolaEndereco').value, telefone: document.getElementById('escolaTelefone').value }; 
+                alert('✅ Escola editada!'); 
+            } else { 
+                escolas.push({ id: Date.now(), nome, endereco: document.getElementById('escolaEndereco').value, telefone: document.getElementById('escolaTelefone').value }); 
+                alert('✅ Escola adicionada!'); 
+            } 
+            escolaEditando = null; 
+            voltarParaTI(); 
+            renderizarEscolasTI(); 
+            atualizarSelects(); 
+        }
+        
+        function excluirEscola(id) { 
+            if (confirm('Excluir escola?')) { 
+                escolas = escolas.filter(e => e.id !== id); 
+                alert('✅ Escola excluída!'); 
+                renderizarEscolasTI(); 
+                atualizarSelects(); 
+            } 
+        }
+        
+        // ================= CRUD COLABORADORES (COM VALIDAÇÃO DE MATRÍCULA) =================
+        function mostrarFormColaborador() { 
+            if (!logadoTI) { alert('Faça login!'); return; } 
+            document.getElementById('screenTI').classList.remove('active'); 
+            document.getElementById('screenFormColaborador').classList.add('active'); 
+            atualizarSelects(); 
+            document.getElementById('colabNome').value = ''; 
+            document.getElementById('colabEmail').value = ''; 
+            document.getElementById('colabSenha').value = ''; 
+            document.getElementById('colabMatricula').value = ''; 
+            document.getElementById('colabCargo').value = ''; 
+            document.getElementById('colabDepartamento').value = ''; 
+            document.getElementById('colabCarga').value = '160'; 
+            colaboradorEditando = null; 
+        }
+        
+        function editarColaborador(id) { 
+            const col = colaboradores.find(c => c.id == id); 
+            if (!col) return; 
+            document.getElementById('screenTI').classList.remove('active'); 
+            document.getElementById('screenFormColaborador').classList.add('active'); 
+            atualizarSelects(); 
+            document.getElementById('colabNome').value = col.nome || ''; 
+            document.getElementById('colabEmail').value = col.email || ''; 
+            document.getElementById('colabSenha').value = col.senha || ''; 
+            document.getElementById('colabMatricula').value = col.matricula || ''; 
+            document.getElementById('colabCargo').value = col.cargo || ''; 
+            document.getElementById('colabDepartamento').value = col.departamento || ''; 
+            document.getElementById('colabCarga').value = col.cargaHoraria || '160'; 
+            const sel = document.getElementById('colabEscolaSelect'); 
+            if (sel) sel.value = col.escola || ''; 
+            colaboradorEditando = id; 
+        }
+        
         async function salvarColaborador() {
             const nome = document.getElementById('colabNome').value.trim();
             const email = document.getElementById('colabEmail').value.trim();
@@ -986,58 +1209,224 @@
             const cargo = document.getElementById('colabCargo').value.trim();
             const departamento = document.getElementById('colabDepartamento').value.trim();
             const carga = document.getElementById('colabCarga').value;
-            if (!nome || !email || !senha || !matricula || !escola) { alert('Preencha todos os campos!'); return; }
-            const dados = { nome, matricula, cargo, departamento, escola, cargaHoraria: carga };
+            
+            if (!nome || !email || !senha || !matricula || !escola) { 
+                alert('Preencha todos os campos obrigatórios!'); 
+                return; 
+            }
+            
+            // VALIDAÇÃO DE MATRÍCULA DUPLICADA
+            const matriculaExistente = colaboradores.some(c => c.matricula === matricula && c.id !== colaboradorEditando);
+            if (matriculaExistente) {
+                alert(`❌ Matrícula "${matricula}" já está cadastrada para outro colaborador!`);
+                return;
+            }
+            
+            const dados = { 
+                nome, 
+                matricula, 
+                cargo, 
+                departamento, 
+                escola, 
+                cargaHoraria: carga 
+            };
+            
             const escolaObj = escolas.find(e => e.nome === escola);
             const userIdx = usuarios.findIndex(u => u.email === email);
-            if (userIdx !== -1) usuarios[userIdx] = { ...usuarios[userIdx], nome, senha, matricula, escolaId: escolaObj?.id };
-            else usuarios.push({ email, senha, matricula, nome, escolaId: escolaObj?.id, hash: null });
-            mostrarLoading('Salvando...');
-            const r = colaboradorEditando ? await chamarAPI('editarColaborador', { id: colaboradorEditando, dadosColab: dados }) : await chamarAPI('adicionarColaborador', dados);
+            if (userIdx !== -1) {
+                usuarios[userIdx] = { ...usuarios[userIdx], nome, senha, matricula, escolaId: escolaObj?.id };
+            } else {
+                usuarios.push({ email, senha, matricula, nome, escolaId: escolaObj?.id, hash: null });
+            }
+            
+            mostrarLoading('Salvando colaborador...');
+            let r;
+            if (colaboradorEditando) {
+                r = await chamarAPI('editarColaborador', { id: colaboradorEditando, dadosColab: dados });
+            } else {
+                r = await chamarAPI('adicionarColaborador', dados);
+            }
             esconderLoading();
-            alert(r.sucesso ? (colaboradorEditando ? '✅ Editado!' : '✅ Adicionado!') : '❌ ' + r.mensagem);
-            await listarColaboradores();
-            voltarParaTI();
+            
+            if (r.sucesso) {
+                alert(colaboradorEditando ? '✅ Colaborador editado!' : '✅ Colaborador adicionado!');
+                await carregarColaboradores();
+                voltarParaTI();
+            } else {
+                alert('❌ ' + (r.mensagem || 'Erro ao salvar colaborador'));
+            }
         }
-        async function excluirColaborador(id) { if (confirm('Excluir?')) { const r = await chamarAPI('excluirColaborador', { id }); alert(r.sucesso ? '✅ Excluído!' : '❌ ' + r.mensagem); await listarColaboradores(); } }
         
-        function mostrarFormRegistro() { if (!logadoTI) { alert('Faça login!'); return; } document.getElementById('screenTI').classList.remove('active'); document.getElementById('screenFormRegistro').classList.add('active'); const hoje = new Date().toISOString().split('T')[0]; const hora = new Date().toLocaleTimeString('pt-BR').slice(0,5); document.getElementById('regData').value = hoje; document.getElementById('regHora').value = hora; document.getElementById('regMatricula').value = ''; document.getElementById('regTipo').value = 'entrada'; document.getElementById('regObs').value = ''; }
+        async function excluirColaborador(id) {
+            if (!confirm('⚠️ Tem certeza que deseja excluir este colaborador?\nEsta ação não poderá ser desfeita!')) return;
+            
+            mostrarLoading('Excluindo colaborador...');
+            const r = await chamarAPI('excluirColaborador', { id });
+            esconderLoading();
+            
+            if (r.sucesso) {
+                alert('✅ Colaborador excluído com sucesso!');
+                // Remover também da lista local de usuários
+                const colab = colaboradores.find(c => c.id == id);
+                if (colab) {
+                    const userIndex = usuarios.findIndex(u => u.email === colab.email);
+                    if (userIndex !== -1) usuarios.splice(userIndex, 1);
+                }
+                await carregarColaboradores();
+                renderizarColaboradoresTI();
+            } else {
+                alert('❌ ' + (r.mensagem || 'Erro ao excluir colaborador'));
+            }
+        }
+        
+        // ================= REGISTROS (TI) =================
+        function mostrarFormRegistro() { 
+            if (!logadoTI) { alert('Faça login!'); return; } 
+            document.getElementById('screenTI').classList.remove('active'); 
+            document.getElementById('screenFormRegistro').classList.add('active'); 
+            const hoje = new Date().toISOString().split('T')[0]; 
+            const hora = new Date().toLocaleTimeString('pt-BR').slice(0,5); 
+            document.getElementById('regData').value = hoje; 
+            document.getElementById('regHora').value = hora; 
+            document.getElementById('regMatricula').value = ''; 
+            document.getElementById('regTipo').value = 'entrada'; 
+            document.getElementById('regObs').value = ''; 
+        }
+        
         async function salvarRegistroTI() {
             const mat = document.getElementById('regMatricula').value.trim();
             const tipo = document.getElementById('regTipo').value;
             const data = document.getElementById('regData').value.split('-').reverse().join('/');
             const hora = document.getElementById('regHora').value;
             const obs = document.getElementById('regObs').value;
-            if (!mat) { alert('Matrícula!'); return; }
+            if (!mat) { alert('Digite a matrícula!'); return; }
             const r = await chamarAPI('registrarPonto', { matricula: mat, tipo, data, hora, observacao: obs, origem: 'Manual TI' });
             alert(r.sucesso ? r.mensagem : '❌ ' + r.mensagem);
-            if (r.sucesso) { await listarRegistros(); voltarParaTI(); }
+            if (r.sucesso) { 
+                await carregarRegistros(); 
+                voltarParaTI(); 
+            }
         }
         
-        function mostrarFormTroca() { if (!logadoTI) { alert('Faça login!'); return; } document.getElementById('screenTI').classList.remove('active'); document.getElementById('screenFormTroca').classList.add('active'); atualizarSelects(); document.getElementById('trocaData').value = new Date().toISOString().split('T')[0]; document.getElementById('trocaMotivo').value = ''; document.getElementById('trocaObs').value = ''; }
+        // ================= TROCAS =================
+        function mostrarFormTroca() { 
+            if (!logadoTI) { alert('Faça login!'); return; } 
+            document.getElementById('screenTI').classList.remove('active'); 
+            document.getElementById('screenFormTroca').classList.add('active'); 
+            atualizarSelects(); 
+            document.getElementById('trocaData').value = new Date().toISOString().split('T')[0]; 
+            document.getElementById('trocaMotivo').value = ''; 
+            document.getElementById('trocaObs').value = ''; 
+        }
+        
         async function salvarTroca() {
             const saidaMat = document.getElementById('trocaSaida').value;
             const entradaMat = document.getElementById('trocaEntrada').value;
             const data = document.getElementById('trocaData').value.split('-').reverse().join('/');
             const motivo = document.getElementById('trocaMotivo').value.trim();
             const obs = document.getElementById('trocaObs').value.trim();
-            if (!saidaMat || !entradaMat || !motivo) { alert('Preencha tudo!'); return; }
+            if (!saidaMat || !entradaMat || !motivo) { alert('Preencha todos os campos!'); return; }
             const saida = colaboradores.find(c => c.matricula === saidaMat);
             const entrada = colaboradores.find(c => c.matricula === entradaMat);
             if (!saida || !entrada) { alert('Colaborador não encontrado!'); return; }
             const r = await chamarAPI('registrarTroca', { saidaMat, saidaNome: saida.nome, entradaMat, entradaNome: entrada.nome, data, motivo, observacao: obs });
             alert(r.sucesso ? '🔄 Troca registrada!' : '❌ ' + r.mensagem);
-            if (r.sucesso) { await listarTrocas(); voltarParaTI(); }
+            if (r.sucesso) { 
+                await carregarTrocas(); 
+                voltarParaTI(); 
+            }
         }
         
-        function mostrarFormNovoUsuario() { if (!logadoTI) { alert('Faça login!'); return; } document.getElementById('screenTI').classList.remove('active'); document.getElementById('screenFormUsuario').classList.add('active'); document.getElementById('userUsuario').value = ''; document.getElementById('userSenha').value = ''; document.getElementById('userTipo').value = 'Comum'; }
-        async function salvarUsuarioTI() { const u = document.getElementById('userUsuario').value.trim(); const s = document.getElementById('userSenha').value.trim(); const t = document.getElementById('userTipo').value; if (!u || !s) { alert('Preencha!'); return; } const r = await chamarAPI('adicionarUsuarioTI', { usuario: u, senha: s, tipo: t }); alert(r.sucesso ? '✅ Usuário adicionado!' : '❌ ' + r.mensagem); if (r.sucesso) { const res = await chamarAPI('listarUsuariosTI'); if (res.sucesso) renderizarUsuariosTI(res.dados); voltarParaTI(); } }
-        async function excluirUsuarioTI(usuario) { if (usuario === 'admin') { alert('Não pode excluir admin!'); return; } if (confirm(`Excluir ${usuario}?`)) { const r = await chamarAPI('excluirUsuarioTI', { usuario }); alert(r.sucesso ? '✅ Excluído!' : '❌ ' + r.mensagem); if (r.sucesso) { const res = await chamarAPI('listarUsuariosTI'); if (res.sucesso) renderizarUsuariosTI(res.dados); } } }
+        // ================= USUÁRIOS TI =================
+        function mostrarFormNovoUsuario() { 
+            if (!logadoTI) { alert('Faça login!'); return; } 
+            document.getElementById('screenTI').classList.remove('active'); 
+            document.getElementById('screenFormUsuario').classList.add('active'); 
+            document.getElementById('userUsuario').value = ''; 
+            document.getElementById('userSenha').value = ''; 
+            document.getElementById('userTipo').value = 'Comum'; 
+        }
         
-        function fazerBackup() { if (!logadoTI) { alert('Faça login!'); return; } const backup = { escolas, colaboradores, usuarios, registros: registrosPonto, trocas: trocasTurno, data: new Date().toLocaleString() }; const blob = new Blob([JSON.stringify(backup, null, 2)], { type: 'application/json' }); const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = `backup-ponto-${new Date().toISOString().split('T')[0]}.json`; a.click(); alert('💾 Backup gerado!'); }
-        async function gerarFolhaPonto() { if (!logadoTI) { alert('Faça login!'); return; } const mes = document.getElementById('tiMes').value; const ano = document.getElementById('tiAno').value; const r = await chamarAPI('gerarFolhaPonto', { mes, ano }); if (r.sucesso) { let html = gerarHTMLFolha(r.dados, mes, ano); const w = window.open('', '_blank'); w.document.write(html); w.document.close(); w.print(); } else alert('❌ ' + (r.mensagem || 'Erro')); }
-        function gerarHTMLFolha(folhas, mes, ano) { const meses = ['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro']; let html = `<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Folha de Ponto</title><style>body{font-family:Arial;padding:20px}table{width:100%;border-collapse:collapse}th,td{border:1px solid #ccc;padding:8px;text-align:center}th{background:#667eea;color:white}</style></head><body><h1>📋 Folha de Ponto - ${meses[mes-1]}/${ano}</h1>`; folhas.forEach(f => { let total = 0; f.registros.forEach(r => { if(r.entrada && r.saida){ const eh = parseInt(r.entrada.split(':')[0]); const sh = parseInt(r.saida.split(':')[0]); total += sh - eh; } }); html += `<h3>${escapeHtml(f.colaborador)} - ${escapeHtml(f.escola)}</h3><p>Carga: ${f.cargaHoraria}h | Total: ${total.toFixed(2)}h</p><table><thead><tr><th>Data</th><th>Entrada</th><th>Saída</th></tr></thead><tbody>`; const dias = new Date(ano, mes, 0).getDate(); for(let d=1; d<=dias; d++){ const dia = d.toString().padStart(2,'0'); const reg = f.registros.find(r => r.data.split('/')[0] == dia); html += `<tr><td>${dia}/${mes}/${ano}</td><td>${reg?.entrada || '-'}</td><td>${reg?.saida || '-'}</td></tr>`; } html += `</tbody></table><div class="assinatura"><p>____________________________________</p><p>Assinatura do Diretor</p></div>`; }); html += `</body></html>`; return html; }
+        async function salvarUsuarioTI() { 
+            const u = document.getElementById('userUsuario').value.trim(); 
+            const s = document.getElementById('userSenha').value.trim(); 
+            const t = document.getElementById('userTipo').value; 
+            if (!u || !s) { alert('Preencha todos os campos!'); return; } 
+            const r = await chamarAPI('adicionarUsuarioTI', { usuario: u, senha: s, tipo: t }); 
+            alert(r.sucesso ? '✅ Usuário adicionado!' : '❌ ' + r.mensagem); 
+            if (r.sucesso) { 
+                const res = await chamarAPI('listarUsuariosTI'); 
+                if (res.sucesso) renderizarUsuariosTI(res.dados); 
+                voltarParaTI(); 
+            } 
+        }
         
+        async function excluirUsuarioTI(usuario) { 
+            if (usuario === 'admin') { alert('Não pode excluir o usuário admin!'); return; } 
+            if (confirm(`Excluir usuário ${usuario}?`)) { 
+                const r = await chamarAPI('excluirUsuarioTI', { usuario }); 
+                alert(r.sucesso ? '✅ Usuário excluído!' : '❌ ' + r.mensagem); 
+                if (r.sucesso) { 
+                    const res = await chamarAPI('listarUsuariosTI'); 
+                    if (res.sucesso) renderizarUsuariosTI(res.dados); 
+                } 
+            } 
+        }
+        
+        // ================= BACKUP E FOLHA =================
+        function fazerBackup() { 
+            if (!logadoTI) { alert('Faça login!'); return; } 
+            const backup = { escolas, colaboradores, usuarios, registros: registrosPonto, trocas: trocasTurno, data: new Date().toLocaleString() }; 
+            const blob = new Blob([JSON.stringify(backup, null, 2)], { type: 'application/json' }); 
+            const a = document.createElement('a'); 
+            a.href = URL.createObjectURL(blob); 
+            a.download = `backup-ponto-${new Date().toISOString().split('T')[0]}.json`; 
+            a.click(); 
+            alert('💾 Backup gerado!'); 
+        }
+        
+        async function gerarFolhaPonto() { 
+            if (!logadoTI) { alert('Faça login!'); return; } 
+            const mes = document.getElementById('tiMes').value; 
+            const ano = document.getElementById('tiAno').value; 
+            const r = await chamarAPI('gerarFolhaPonto', { mes, ano }); 
+            if (r.sucesso) { 
+                let html = gerarHTMLFolha(r.dados, mes, ano); 
+                const w = window.open('', '_blank'); 
+                w.document.write(html); 
+                w.document.close(); 
+                w.print(); 
+            } else { 
+                alert('❌ ' + (r.mensagem || 'Erro ao gerar folha')); 
+            } 
+        }
+        
+        function gerarHTMLFolha(folhas, mes, ano) { 
+            const meses = ['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro']; 
+            let html = `<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Folha de Ponto</title><style>body{font-family:Arial;padding:20px}table{width:100%;border-collapse:collapse}th,td{border:1px solid #ccc;padding:8px;text-align:center}th{background:#667eea;color:white}</style></head><body><h1>📋 Folha de Ponto - ${meses[mes-1]}/${ano}</h1>`; 
+            folhas.forEach(f => { 
+                let total = 0; 
+                f.registros.forEach(r => { 
+                    if(r.entrada && r.saida){ 
+                        const eh = parseInt(r.entrada.split(':')[0]); 
+                        const sh = parseInt(r.saida.split(':')[0]); 
+                        total += sh - eh; 
+                    } 
+                }); 
+                html += `<h3>${escapeHtml(f.colaborador)} - ${escapeHtml(f.escola)}</h3><p>Carga: ${f.cargaHoraria}h | Total: ${total.toFixed(2)}h</p><table><thead><tr><th>Data</th><th>Entrada</th><th>Saída</th></tr></thead><tbody>`; 
+                const dias = new Date(ano, mes, 0).getDate(); 
+                for(let d=1; d<=dias; d++){ 
+                    const dia = d.toString().padStart(2,'0'); 
+                    const reg = f.registros.find(r => r.data.split('/')[0] == dia); 
+                    html += `<tr><td>${dia}/${mes}/${ano}</td><td>${reg?.entrada || '-'}</td><td>${reg?.saida || '-'}</td></tr>`; 
+                } 
+                html += `</tbody></table><div class="assinatura"><p>____________________________________</p><p>Assinatura do Diretor</p></div>`; 
+            }); 
+            html += `</body></html>`; 
+            return html; 
+        }
+        
+        // ================= INICIALIZAÇÃO =================
         async function inicializarApp() {
             const hoje = new Date().toISOString().split('T')[0];
             if (document.getElementById('regData')) document.getElementById('regData').value = hoje;
@@ -1045,9 +1434,9 @@
             const agora = new Date();
             const hora = agora.getHours().toString().padStart(2,'0') + ':' + agora.getMinutes().toString().padStart(2,'0');
             if (document.getElementById('regHora')) document.getElementById('regHora').value = hora;
-            await listarColaboradores();
-            await listarRegistros();
-            await listarTrocas();
+            await carregarColaboradores();
+            await carregarRegistros();
+            await carregarTrocas();
         }
         
         if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', inicializarApp);

@@ -81,13 +81,13 @@
         
         /* Conteúdo */
         .content {
-            padding: 30px 20px;
+            padding: 20px;
             flex: 1;
             overflow-y: auto;
             -webkit-overflow-scrolling: touch;
         }
         
-        /* Cards de Escola */
+        /* Cards de Escola (seleção) */
         .escola-card {
             background: #f8f9fa;
             border-radius: 20px;
@@ -114,7 +114,7 @@
             font-size: 0.9rem;
         }
         
-        /* Cards */
+        /* Cards padrão */
         .card {
             background: #f8f9fa;
             border-radius: 20px;
@@ -208,6 +208,70 @@
             font-size: 0.9rem;
             width: auto;
             flex: 1;
+        }
+        
+        /* Menu da Área T.I */
+        .ti-menu {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 12px;
+            margin-bottom: 20px;
+        }
+        
+        .ti-menu-item {
+            background: linear-gradient(135deg, #f8f9fa, #fff);
+            border: 1px solid #e0e0e0;
+            border-radius: 20px;
+            padding: 20px 10px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        
+        .ti-menu-item:active {
+            transform: scale(0.96);
+            background: #e9ecef;
+        }
+        
+        .ti-menu-item span {
+            font-size: 2rem;
+            display: block;
+            margin-bottom: 8px;
+        }
+        
+        .ti-menu-item h4 {
+            color: #333;
+            font-size: 0.9rem;
+            font-weight: 600;
+        }
+        
+        .ti-menu-item p {
+            color: #999;
+            font-size: 0.75rem;
+            margin-top: 5px;
+        }
+        
+        /* Seções do TI */
+        .ti-section {
+            background: #f8f9fa;
+            border-radius: 25px;
+            padding: 20px;
+            margin-top: 20px;
+            display: none;
+        }
+        
+        .ti-section.active {
+            display: block;
+        }
+        
+        .ti-section h3 {
+            color: #333;
+            margin-bottom: 15px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            border-left: 4px solid #667eea;
+            padding-left: 15px;
         }
         
         /* Camera */
@@ -371,7 +435,6 @@
             opacity: 0.7;
         }
         
-        /* Links */
         .link {
             color: #667eea;
             text-align: center;
@@ -387,7 +450,6 @@
             margin-top: 20px;
         }
         
-        /* Botão Manual */
         .manual-btn {
             background: linear-gradient(135deg, #4facfe, #00f2fe);
             margin-top: 10px;
@@ -473,7 +535,7 @@
             </div>
             
             <div id="escolasList">
-                <!-- Lista de escolas será preenchida via JavaScript -->
+                <div class="status status-info">Carregando escolas...</div>
             </div>
         </div>
     </div>
@@ -549,7 +611,7 @@
         </div>
     </div>
 
-    <!-- Tela: Área T.I (Restrita) -->
+    <!-- Tela: Área T.I (Organizada) -->
     <div id="screenTI" class="screen">
         <div class="header">
             <button class="btn-back" onclick="fecharTI()">←</button>
@@ -573,38 +635,76 @@
             <button class="btn-primary" onclick="fazerLoginTI()">🔐 Entrar</button>
             
             <div id="tiPainel" style="display: none; margin-top: 30px;">
-                <h3 style="margin-bottom: 15px;">📋 Painel Administrativo</h3>
-                
-                <!-- Card: Colaboradores -->
-                <div class="card">
-                    <div class="card-title">👥 Colaboradores</div>
-                    <div id="colaboradoresList" style="max-height: 300px; overflow-y: auto;">
-                        <div class="status status-info">Faça login para ver os colaboradores</div>
+                <!-- Menu de Navegação TI -->
+                <div class="ti-menu">
+                    <div class="ti-menu-item" onclick="mostrarSecaoTI('escolas')">
+                        <span>🏫</span>
+                        <h4>Escolas</h4>
+                        <p>Gerenciar escolas cadastradas</p>
                     </div>
-                    <button class="btn-small btn-primary" onclick="mostrarFormColaborador()" style="margin-top: 10px;">➕ Adicionar Colaborador</button>
+                    <div class="ti-menu-item" onclick="mostrarSecaoTI('colaboradores')">
+                        <span>👥</span>
+                        <h4>Colaboradores</h4>
+                        <p>Gerenciar colaboradores</p>
+                    </div>
+                    <div class="ti-menu-item" onclick="mostrarSecaoTI('registros')">
+                        <span>📊</span>
+                        <h4>Registros</h4>
+                        <p>Visualizar registros de ponto</p>
+                    </div>
+                    <div class="ti-menu-item" onclick="mostrarSecaoTI('trocas')">
+                        <span>🔄</span>
+                        <h4>Troca de Turnos</h4>
+                        <p>Gerenciar trocas</p>
+                    </div>
+                    <div class="ti-menu-item" onclick="mostrarSecaoTI('folha')">
+                        <span>📄</span>
+                        <h4>Folha de Ponto</h4>
+                        <p>Gerar relatório mensal</p>
+                    </div>
+                    <div class="ti-menu-item" onclick="mostrarSecaoTI('usuarios')">
+                        <span>👨‍💻</span>
+                        <h4>Usuários TI</h4>
+                        <p>Gerenciar acesso</p>
+                    </div>
+                    <div class="ti-menu-item" onclick="mostrarSecaoTI('backup')">
+                        <span>💾</span>
+                        <h4>Backup</h4>
+                        <p>Fazer backup dos dados</p>
+                    </div>
                 </div>
                 
-                <!-- Card: Registros de Ponto -->
-                <div class="card">
-                    <div class="card-title">📊 Registros de Ponto</div>
-                    <div id="registrosList" style="max-height: 300px; overflow-y: auto;">
-                        <div class="status status-info">Faça login para ver os registros</div>
-                    </div>
-                    <button class="btn-small btn-primary" onclick="mostrarFormRegistro()" style="margin-top: 10px;">➕ Registrar Ponto Manual</button>
+                <!-- Seção: Escolas -->
+                <div id="tiSecaoEscolas" class="ti-section">
+                    <h3>🏫 Gerenciar Escolas</h3>
+                    <button class="btn-small btn-primary" onclick="mostrarFormEscola()" style="margin-bottom: 15px;">➕ Nova Escola</button>
+                    <div id="escolasListTI"></div>
                 </div>
                 
-                <!-- Card: Troca de Turnos -->
-                <div class="card">
-                    <div class="card-title">🔄 Troca de Turnos</div>
-                    <div id="trocasList" style="max-height: 300px; overflow-y: auto;">
-                        <div class="status status-info">Faça login para ver as trocas</div>
-                    </div>
-                    <button class="btn-small btn-primary" onclick="mostrarFormTroca()" style="margin-top: 10px;">➕ Nova Troca</button>
+                <!-- Seção: Colaboradores -->
+                <div id="tiSecaoColaboradores" class="ti-section">
+                    <h3>👥 Gerenciar Colaboradores</h3>
+                    <button class="btn-small btn-primary" onclick="mostrarFormColaborador()" style="margin-bottom: 15px;">➕ Novo Colaborador</button>
+                    <div id="colaboradoresListTI"></div>
                 </div>
                 
-                <!-- Card: Folha de Ponto -->
-                <div class="card">
-                    <div class="card-title">📄 Folha de Ponto</div>
+                <!-- Seção: Registros -->
+                <div id="tiSecaoRegistros" class="ti-section">
+                    <h3>📊 Registros de Ponto</h3>
+                    <button class="btn-small btn-primary" onclick="mostrarFormRegistro()" style="margin-bottom: 15px;">➕ Registrar Ponto Manual</button>
+                    <div id="registrosListTI"></div>
+                </div>
+                
+                <!-- Seção: Troca de Turnos -->
+                <div id="tiSecaoTrocas" class="ti-section">
+                    <h3>🔄 Troca de Turnos</h3>
+                    <button class="btn-small btn-primary" onclick="mostrarFormTroca()" style="margin-bottom: 15px;">➕ Nova Troca</button>
+                    <div id="trocasListTI"></div>
+                </div>
+                
+                <!-- Seção: Folha de Ponto -->
+                <div id="tiSecaoFolha" class="ti-section">
+                    <h3>📄 Folha de Ponto</h3>
                     <div class="form-group">
                         <label>Mês</label>
                         <select id="tiMes">
@@ -629,23 +729,47 @@
                     <button class="btn-small btn-primary" onclick="gerarFolhaPonto()">📄 Gerar Folha</button>
                 </div>
                 
-                <!-- Card: Gerenciar Usuários TI -->
-                <div class="card">
-                    <div class="card-title">👥 Gerenciar Usuários TI</div>
+                <!-- Seção: Usuários TI -->
+                <div id="tiSecaoUsuarios" class="ti-section">
+                    <h3>👨‍💻 Usuários do Sistema</h3>
+                    <button class="btn-small btn-success" onclick="mostrarFormNovoUsuario()" style="margin-bottom: 15px;">➕ Novo Usuário</button>
                     <div id="usuariosTIList"></div>
-                    <button class="btn-small btn-success" onclick="mostrarFormNovoUsuario()">➕ Novo Usuário</button>
                 </div>
                 
-                <!-- Card: Backup -->
-                <div class="card">
-                    <div class="card-title">💾 Backup</div>
+                <!-- Seção: Backup -->
+                <div id="tiSecaoBackup" class="ti-section">
+                    <h3>💾 Backup do Sistema</h3>
                     <button class="btn-small btn-primary" onclick="fazerBackup()">📦 Fazer Backup</button>
                 </div>
             </div>
         </div>
     </div>
 
-    <!-- Tela: Formulário Colaborador -->
+    <!-- Formulário Escola -->
+    <div id="screenFormEscola" class="screen">
+        <div class="header">
+            <button class="btn-back" onclick="voltarParaTI()">←</button>
+            <div class="header-title" id="formEscolaTitle">➕ Nova Escola</div>
+        </div>
+        <div class="content">
+            <div class="form-group">
+                <label>Nome da Escola *</label>
+                <input type="text" id="escolaNome" placeholder="Digite o nome completo da escola">
+            </div>
+            <div class="form-group">
+                <label>Endereço</label>
+                <input type="text" id="escolaEndereco" placeholder="Digite o endereço">
+            </div>
+            <div class="form-group">
+                <label>Telefone</label>
+                <input type="text" id="escolaTelefone" placeholder="Digite o telefone">
+            </div>
+            <button class="btn-primary" onclick="salvarEscola()">✅ Salvar</button>
+            <button class="btn-danger" onclick="voltarParaTI()">❌ Cancelar</button>
+        </div>
+    </div>
+
+    <!-- Formulário Colaborador -->
     <div id="screenFormColaborador" class="screen">
         <div class="header">
             <button class="btn-back" onclick="voltarParaTI()">←</button>
@@ -656,50 +780,40 @@
                 <label>Nome completo *</label>
                 <input type="text" id="colabNome" placeholder="Digite o nome">
             </div>
-            
             <div class="form-group">
                 <label>Email *</label>
                 <input type="email" id="colabEmail" placeholder="Digite o email">
             </div>
-            
             <div class="form-group">
                 <label>Senha *</label>
                 <input type="password" id="colabSenha" placeholder="Digite a senha">
             </div>
-            
             <div class="form-group">
                 <label>Matrícula *</label>
                 <input type="text" id="colabMatricula" placeholder="Digite a matrícula">
             </div>
-            
             <div class="form-group">
                 <label>Escola *</label>
-                <select id="colabEscolaSelect">
-                    <option value="">Selecione a escola</option>
-                </select>
+                <select id="colabEscolaSelect"></select>
             </div>
-            
             <div class="form-group">
                 <label>Cargo</label>
                 <input type="text" id="colabCargo" placeholder="Digite o cargo">
             </div>
-            
             <div class="form-group">
                 <label>Departamento</label>
                 <input type="text" id="colabDepartamento" placeholder="Digite o departamento">
             </div>
-            
             <div class="form-group">
                 <label>Carga Horária Mensal (horas)</label>
                 <input type="number" id="colabCarga" value="160">
             </div>
-            
             <button class="btn-primary" onclick="salvarColaborador()">✅ Salvar</button>
             <button class="btn-danger" onclick="voltarParaTI()">❌ Cancelar</button>
         </div>
     </div>
 
-    <!-- Tela: Formulário Registro Manual (TI) -->
+    <!-- Formulário Registro Manual (TI) -->
     <div id="screenFormRegistro" class="screen">
         <div class="header">
             <button class="btn-back" onclick="voltarParaTI()">←</button>
@@ -710,7 +824,6 @@
                 <label>Matrícula *</label>
                 <input type="text" id="regMatricula" placeholder="Digite a matrícula">
             </div>
-            
             <div class="form-group">
                 <label>Tipo</label>
                 <select id="regTipo">
@@ -718,28 +831,24 @@
                     <option value="saida">🏃 Saída</option>
                 </select>
             </div>
-            
             <div class="form-group">
                 <label>Data</label>
                 <input type="date" id="regData">
             </div>
-            
             <div class="form-group">
                 <label>Hora</label>
                 <input type="time" id="regHora">
             </div>
-            
             <div class="form-group">
                 <label>Observação</label>
                 <textarea id="regObs" rows="3" placeholder="Opcional"></textarea>
             </div>
-            
             <button class="btn-primary btn-success" onclick="salvarRegistroTI()">✅ Salvar Registro</button>
             <button class="btn-danger" onclick="voltarParaTI()">❌ Cancelar</button>
         </div>
     </div>
 
-    <!-- Tela: Formulário Troca de Turnos -->
+    <!-- Formulário Troca de Turnos -->
     <div id="screenFormTroca" class="screen">
         <div class="header">
             <button class="btn-back" onclick="voltarParaTI()">←</button>
@@ -748,39 +857,30 @@
         <div class="content">
             <div class="form-group">
                 <label>Colaborador Substituído *</label>
-                <select id="trocaSaida">
-                    <option value="">Selecione</option>
-                </select>
+                <select id="trocaSaida"></select>
             </div>
-            
             <div class="form-group">
                 <label>Colaborador Substituto *</label>
-                <select id="trocaEntrada">
-                    <option value="">Selecione</option>
-                </select>
+                <select id="trocaEntrada"></select>
             </div>
-            
             <div class="form-group">
                 <label>Data da Troca</label>
                 <input type="date" id="trocaData">
             </div>
-            
             <div class="form-group">
                 <label>Motivo *</label>
                 <input type="text" id="trocaMotivo" placeholder="Digite o motivo">
             </div>
-            
             <div class="form-group">
                 <label>Observação</label>
                 <textarea id="trocaObs" rows="3" placeholder="Opcional"></textarea>
             </div>
-            
             <button class="btn-primary btn-warning" onclick="salvarTroca()">✅ Registrar Troca</button>
             <button class="btn-danger" onclick="voltarParaTI()">❌ Cancelar</button>
         </div>
     </div>
 
-    <!-- Tela: Formulário Usuário TI -->
+    <!-- Formulário Usuário TI -->
     <div id="screenFormUsuario" class="screen">
         <div class="header">
             <button class="btn-back" onclick="voltarParaTI()">←</button>
@@ -791,12 +891,10 @@
                 <label>Usuário</label>
                 <input type="text" id="userUsuario" placeholder="Digite o usuário">
             </div>
-            
             <div class="form-group">
                 <label>Senha</label>
                 <input type="password" id="userSenha" placeholder="Digite a senha">
             </div>
-            
             <div class="form-group">
                 <label>Tipo</label>
                 <select id="userTipo">
@@ -804,7 +902,6 @@
                     <option value="Master">Master</option>
                 </select>
             </div>
-            
             <button class="btn-primary" onclick="salvarUsuarioTI()">✅ Salvar</button>
             <button class="btn-danger" onclick="voltarParaTI()">❌ Cancelar</button>
         </div>
@@ -819,15 +916,15 @@
         // ================= CONFIGURAÇÃO =================
         const API_URL = 'https://sistema-ponto-seven.vercel.app/api/ponto';
         
-        // ================= LISTA DE ESCOLAS =================
-        const escolas = [
-            { id: 1, nome: "CENTRO INFANTIL VEREADOR EVANDRO CARI" },
-            { id: 2, nome: "EMEIF AUDALIO MACIANO DA SILVA" },
-            { id: 3, nome: "EMEIF FREI DAMIAO" },
-            { id: 4, nome: "EMEIF SANTA ANA" },
-            { id: 5, nome: "EMEIF JOAO VIEIRA GOMES" },
-            { id: 6, nome: "EMEIF PEDRO FRANCISCO DAS CHAGAS" },
-            { id: 7, nome: "EMEIF MANOEL VIEIRA GADI" }
+        // ================= LISTA DE ESCOLAS (GERENCIADA PELO ADMIN) =================
+        let escolas = [
+            { id: 1, nome: "CENTRO INFANTIL VEREADOR EVANDRO CARI", endereco: "", telefone: "" },
+            { id: 2, nome: "EMEIF AUDALIO MACIANO DA SILVA", endereco: "", telefone: "" },
+            { id: 3, nome: "EMEIF FREI DAMIAO", endereco: "", telefone: "" },
+            { id: 4, nome: "EMEIF SANTA ANA", endereco: "", telefone: "" },
+            { id: 5, nome: "EMEIF JOAO VIEIRA GOMES", endereco: "", telefone: "" },
+            { id: 6, nome: "EMEIF PEDRO FRANCISCO DAS CHAGAS", endereco: "", telefone: "" },
+            { id: 7, nome: "EMEIF MANOEL VIEIRA GADI", endereco: "", telefone: "" }
         ];
         
         // ================= USUÁRIOS CADASTRADOS =================
@@ -845,12 +942,17 @@
         let biometria = [];
         let stream = null;
         let logadoTI = false;
+        let secaoAtualTI = '';
         
         // Sessão do usuário logado
         let usuarioLogado = null;
         let escolaSelecionada = null;
         let scanInterval = null;
         let tentativasReconhecimento = 0;
+        
+        // Variáveis para edição
+        let escolaEditando = null;
+        let colaboradorEditando = null;
         
         // ================= FUNÇÕES DE AUTENTICAÇÃO =================
         function mostrarRecuperarSenha() {
@@ -883,26 +985,29 @@
             
             usuarioLogado = usuario;
             
-            // Se já tem escola selecionada, vai direto para a câmera
             if (usuario.escolaId) {
                 escolaSelecionada = escolas.find(e => e.id === usuario.escolaId);
                 iniciarPontoAutomatico();
             } else {
-                // Mostrar tela de seleção de escola
                 document.getElementById('welcomeNome').textContent = usuario.nome;
-                carregarEscolas();
+                carregarEscolasSelecao();
                 document.getElementById('screenLogin').classList.remove('active');
                 document.getElementById('screenEscola').classList.add('active');
             }
         }
         
-        function carregarEscolas() {
+        function carregarEscolasSelecao() {
             const container = document.getElementById('escolasList');
+            if (escolas.length === 0) {
+                container.innerHTML = '<div class="status status-warning">Nenhuma escola cadastrada. Contate o administrador.</div>';
+                return;
+            }
+            
             let html = '';
             escolas.forEach(escola => {
                 html += `
                     <div class="escola-card" onclick="selecionarEscola(${escola.id})">
-                        <h3>${escola.nome}</h3>
+                        <h3>${escapeHtml(escola.nome)}</h3>
                         <p>Clique para selecionar esta escola</p>
                     </div>
                 `;
@@ -1071,11 +1176,9 @@
             }
             const hashAtual = hash.toString(36);
             
-            // Simular reconhecimento (em produção, comparar com hash salvo)
             if (usuarioLogado.hash && usuarioLogado.hash === hashAtual) {
                 registrarPontoAutomatico();
             } else if (Math.random() > 0.6) {
-                // Simulação: 40% de chance de reconhecer após algumas tentativas
                 usuarioLogado.hash = hashAtual;
                 registrarPontoAutomatico();
             }
@@ -1085,23 +1188,11 @@
             if (scanInterval) clearInterval(scanInterval);
             
             const hoje = new Date().toLocaleDateString('pt-BR');
-            const horaAtual = new Date().toLocaleTimeString('pt-BR');
-            
-            // Verificar se já tem registro hoje sem saída
             const registroExistente = registrosPonto.find(r => 
                 r.matricula === usuarioLogado.matricula && r.data === hoje && !r.saida
             );
             
-            let tipo = 'entrada';
-            let mensagem = '';
-            
-            if (registroExistente) {
-                tipo = 'saida';
-                mensagem = '✅ Saída registrada com sucesso!';
-            } else {
-                tipo = 'entrada';
-                mensagem = '✅ Entrada registrada com sucesso!';
-            }
+            let tipo = registroExistente ? 'saida' : 'entrada';
             
             const dados = {
                 matricula: usuarioLogado.matricula,
@@ -1170,7 +1261,8 @@
             const resultado = await chamarAPI('listarColaboradores');
             if (resultado.sucesso) {
                 colaboradores = resultado.dados;
-                renderizarColaboradores();
+                renderizarColaboradoresTI();
+                atualizarSelectsColaboradores();
             }
         }
         
@@ -1178,7 +1270,7 @@
             const resultado = await chamarAPI('listarRegistros');
             if (resultado.sucesso) {
                 registrosPonto = resultado.dados;
-                renderizarRegistros();
+                renderizarRegistrosTI();
             }
         }
         
@@ -1186,13 +1278,39 @@
             const resultado = await chamarAPI('listarTrocas');
             if (resultado.sucesso) {
                 trocasTurno = resultado.dados;
-                renderizarTrocas();
+                renderizarTrocasTI();
             }
         }
         
         // ================= FUNÇÕES DE RENDERIZAÇÃO =================
-        function renderizarColaboradores() {
-            const container = document.getElementById('colaboradoresList');
+        function renderizarEscolasTI() {
+            const container = document.getElementById('escolasListTI');
+            if (!container) return;
+            
+            if (escolas.length === 0) {
+                container.innerHTML = '<div class="status status-info">Nenhuma escola cadastrada</div>';
+                return;
+            }
+            
+            let html = '';
+            escolas.forEach(e => {
+                html += `
+                    <div class="card">
+                        <div class="card-title">🏫 ${escapeHtml(e.nome)}</div>
+                        <div class="card-subtitle">${escapeHtml(e.endereco || 'Endereço não informado')}</div>
+                        <div class="card-detail">${escapeHtml(e.telefone || 'Telefone não informado')}</div>
+                        <div class="card-actions">
+                            <button class="btn-small btn-primary" onclick="editarEscola(${e.id})">✏️ Editar</button>
+                            <button class="btn-small btn-danger" onclick="excluirEscola(${e.id})">❌ Excluir</button>
+                        </div>
+                    </div>
+                `;
+            });
+            container.innerHTML = html;
+        }
+        
+        function renderizarColaboradoresTI() {
+            const container = document.getElementById('colaboradoresListTI');
             if (!container) return;
             
             if (!colaboradores || colaboradores.length === 0) {
@@ -1202,11 +1320,12 @@
             
             let html = '';
             colaboradores.forEach(c => {
+                const escolaNome = escolas.find(e => e.nome === c.escola)?.nome || c.escola || '-';
                 html += `
                     <div class="card">
                         <div class="card-title">${escapeHtml(c.nome)}</div>
                         <div class="card-subtitle">Mat: ${escapeHtml(c.matricula)} • ${escapeHtml(c.cargo || '-')}</div>
-                        <div class="card-detail">${escapeHtml(c.escola || '-')} • ${c.cargaHoraria || 160}h</div>
+                        <div class="card-detail">${escapeHtml(escolaNome)} • ${c.cargaHoraria || 160}h</div>
                         <div class="card-actions">
                             <button class="btn-small btn-primary" onclick="editarColaborador(${c.id})">✏️ Editar</button>
                             <button class="btn-small btn-danger" onclick="excluirColaborador(${c.id})">❌ Excluir</button>
@@ -1217,8 +1336,8 @@
             container.innerHTML = html;
         }
         
-        function renderizarRegistros() {
-            const container = document.getElementById('registrosList');
+        function renderizarRegistrosTI() {
+            const container = document.getElementById('registrosListTI');
             if (!container) return;
             
             if (!registrosPonto || registrosPonto.length === 0) {
@@ -1226,7 +1345,7 @@
                 return;
             }
             
-            const registrosOrdenados = [...registrosPonto].reverse().slice(0, 50);
+            const registrosOrdenados = [...registrosPonto].reverse().slice(0, 30);
             let html = '';
             registrosOrdenados.forEach(r => {
                 html += `
@@ -1240,8 +1359,8 @@
             container.innerHTML = html;
         }
         
-        function renderizarTrocas() {
-            const container = document.getElementById('trocasList');
+        function renderizarTrocasTI() {
+            const container = document.getElementById('trocasListTI');
             if (!container) return;
             
             if (!trocasTurno || trocasTurno.length === 0) {
@@ -1274,14 +1393,37 @@
             let html = '';
             usuarios.forEach(u => {
                 html += `
-                    <div class="card" style="margin-top: 10px;">
-                        <div class="card-title">${escapeHtml(u.usuario)}</div>
+                    <div class="card">
+                        <div class="card-title">👤 ${escapeHtml(u.usuario)}</div>
                         <div class="card-subtitle">Tipo: ${escapeHtml(u.tipo)}</div>
-                        <button class="btn-small btn-danger" onclick="excluirUsuarioTI('${escapeHtml(u.usuario)}')">Excluir</button>
+                        <div class="card-actions">
+                            <button class="btn-small btn-danger" onclick="excluirUsuarioTI('${escapeHtml(u.usuario)}')">❌ Excluir</button>
+                        </div>
                     </div>
                 `;
             });
             container.innerHTML = html;
+        }
+        
+        function atualizarSelectsColaboradores() {
+            const selectEscola = document.getElementById('colabEscolaSelect');
+            if (selectEscola) {
+                selectEscola.innerHTML = '<option value="">Selecione a escola</option>';
+                escolas.forEach(escola => {
+                    selectEscola.innerHTML += `<option value="${escapeHtml(escola.nome)}">${escapeHtml(escola.nome)}</option>`;
+                });
+            }
+            
+            const selectSaida = document.getElementById('trocaSaida');
+            const selectEntrada = document.getElementById('trocaEntrada');
+            if (selectSaida && selectEntrada) {
+                selectSaida.innerHTML = '<option value="">Selecione</option>';
+                selectEntrada.innerHTML = '<option value="">Selecione</option>';
+                colaboradores.forEach(c => {
+                    selectSaida.innerHTML += `<option value="${c.matricula}">${escapeHtml(c.nome)} - ${c.matricula}</option>`;
+                    selectEntrada.innerHTML += `<option value="${c.matricula}">${escapeHtml(c.nome)} - ${c.matricula}</option>`;
+                });
+            }
         }
         
         function escapeHtml(texto) {
@@ -1291,17 +1433,15 @@
             return div.innerHTML;
         }
         
-        // ================= ÁREA T.I =================
+        // ================= FUNÇÕES DA ÁREA T.I =================
         function abrirAreaTI() {
             console.log('🔐 Abrindo Área T.I');
-            // Fechar todas as telas abertas
             document.getElementById('screenLogin').classList.remove('active');
             document.getElementById('screenEscola').classList.remove('active');
             document.getElementById('screenCamera').classList.remove('active');
             document.getElementById('screenManual').classList.remove('active');
             document.getElementById('screenSucesso').classList.remove('active');
             document.getElementById('screenRecuperar').classList.remove('active');
-            // Abrir tela TI
             document.getElementById('screenTI').classList.add('active');
             document.getElementById('tiPainel').style.display = 'none';
             document.getElementById('tiStatus').innerHTML = '🔒 Acesso Restrito';
@@ -1312,6 +1452,21 @@
         function fecharTI() {
             document.getElementById('screenTI').classList.remove('active');
             document.getElementById('screenLogin').classList.add('active');
+        }
+        
+        function mostrarSecaoTI(secao) {
+            // Esconder todas as seções
+            document.querySelectorAll('.ti-section').forEach(s => s.classList.remove('active'));
+            // Mostrar a seção selecionada
+            const secaoElement = document.getElementById(`tiSecao${secao.charAt(0).toUpperCase() + secao.slice(1)}`);
+            if (secaoElement) secaoElement.classList.add('active');
+            
+            // Carregar dados da seção
+            if (secao === 'escolas') renderizarEscolasTI();
+            if (secao === 'colaboradores') renderizarColaboradoresTI();
+            if (secao === 'registros') renderizarRegistrosTI();
+            if (secao === 'trocas') renderizarTrocasTI();
+            if (secao === 'usuarios') listarUsuariosTI();
         }
         
         async function fazerLoginTI() {
@@ -1329,6 +1484,8 @@
                 await listarRegistros();
                 await listarTrocas();
                 await listarUsuariosTI();
+                renderizarEscolasTI();
+                mostrarSecaoTI('escolas');
             } else {
                 document.getElementById('tiStatus').innerHTML = '❌ ' + resultado.mensagem;
                 document.getElementById('tiStatus').className = 'status status-error';
@@ -1342,63 +1499,82 @@
             }
         }
         
-        function mostrarFormNovoUsuario() {
-            if (!logadoTI) {
-                alert('Faça login na Área T.I primeiro!');
-                return;
-            }
-            document.getElementById('screenTI').classList.remove('active');
-            document.getElementById('screenFormUsuario').classList.add('active');
-            document.getElementById('userUsuario').value = '';
-            document.getElementById('userSenha').value = '';
-            document.getElementById('userTipo').value = 'Comum';
-        }
-        
-        async function salvarUsuarioTI() {
-            const usuario = document.getElementById('userUsuario').value.trim();
-            const senha = document.getElementById('userSenha').value.trim();
-            const tipo = document.getElementById('userTipo').value;
-            
-            if (!usuario || !senha) {
-                alert('Preencha todos os campos!');
-                return;
-            }
-            
-            const resultado = await chamarAPI('adicionarUsuarioTI', { usuario, senha, tipo });
-            alert(resultado.sucesso ? '✅ Usuário adicionado!' : '❌ ' + resultado.mensagem);
-            
-            if (resultado.sucesso) {
-                await listarUsuariosTI();
-                voltarParaTI();
-            }
-        }
-        
-        async function excluirUsuarioTI(usuario) {
-            if (usuario === 'admin') {
-                alert('⚠️ Não pode excluir o usuário admin!');
-                return;
-            }
-            
-            if (confirm(`Excluir usuário ${usuario}?`)) {
-                const resultado = await chamarAPI('excluirUsuarioTI', { usuario });
-                alert(resultado.sucesso ? '✅ Usuário excluído!' : '❌ ' + resultado.mensagem);
-                if (resultado.sucesso) {
-                    await listarUsuariosTI();
-                }
-            }
-        }
-        
         function voltarParaTI() {
+            document.getElementById('screenFormEscola').classList.remove('active');
             document.getElementById('screenFormColaborador').classList.remove('active');
             document.getElementById('screenFormRegistro').classList.remove('active');
             document.getElementById('screenFormTroca').classList.remove('active');
             document.getElementById('screenFormUsuario').classList.remove('active');
             document.getElementById('screenTI').classList.add('active');
             if (logadoTI) {
-                listarColaboradores();
-                listarRegistros();
-                listarTrocas();
-                listarUsuariosTI();
+                mostrarSecaoTI(secaoAtualTI || 'escolas');
+            }
+        }
+        
+        // ================= CRUD ESCOLAS =================
+        function mostrarFormEscola() {
+            if (!logadoTI) {
+                alert('Faça login na Área T.I primeiro!');
+                return;
+            }
+            document.getElementById('screenTI').classList.remove('active');
+            document.getElementById('screenFormEscola').classList.add('active');
+            document.getElementById('formEscolaTitle').innerHTML = '➕ Nova Escola';
+            document.getElementById('escolaNome').value = '';
+            document.getElementById('escolaEndereco').value = '';
+            document.getElementById('escolaTelefone').value = '';
+            escolaEditando = null;
+        }
+        
+        function editarEscola(id) {
+            const escola = escolas.find(e => e.id === id);
+            if (!escola) return;
+            
+            document.getElementById('screenTI').classList.remove('active');
+            document.getElementById('screenFormEscola').classList.add('active');
+            document.getElementById('formEscolaTitle').innerHTML = '✏️ Editar Escola';
+            document.getElementById('escolaNome').value = escola.nome;
+            document.getElementById('escolaEndereco').value = escola.endereco || '';
+            document.getElementById('escolaTelefone').value = escola.telefone || '';
+            escolaEditando = id;
+        }
+        
+        function salvarEscola() {
+            const nome = document.getElementById('escolaNome').value.trim();
+            const endereco = document.getElementById('escolaEndereco').value.trim();
+            const telefone = document.getElementById('escolaTelefone').value.trim();
+            
+            if (!nome) {
+                alert('Nome da escola é obrigatório!');
+                return;
+            }
+            
+            if (escolaEditando) {
+                const index = escolas.findIndex(e => e.id === escolaEditando);
+                if (index !== -1) {
+                    escolas[index] = { ...escolas[index], nome, endereco, telefone };
+                    alert('✅ Escola editada com sucesso!');
+                }
+            } else {
+                const novoId = Date.now();
+                escolas.push({ id: novoId, nome, endereco, telefone });
+                alert('✅ Escola adicionada com sucesso!');
+            }
+            
+            escolaEditando = null;
+            voltarParaTI();
+            renderizarEscolasTI();
+            carregarEscolasSelecao();
+            atualizarSelectsColaboradores();
+        }
+        
+        function excluirEscola(id) {
+            if (confirm('Tem certeza que deseja excluir esta escola?')) {
+                escolas = escolas.filter(e => e.id !== id);
+                alert('✅ Escola excluída!');
+                renderizarEscolasTI();
+                carregarEscolasSelecao();
+                atualizarSelectsColaboradores();
             }
         }
         
@@ -1412,11 +1588,7 @@
             document.getElementById('screenFormColaborador').classList.add('active');
             document.getElementById('formColabTitle').innerHTML = '➕ Novo Colaborador';
             
-            const selectEscola = document.getElementById('colabEscolaSelect');
-            selectEscola.innerHTML = '<option value="">Selecione a escola</option>';
-            escolas.forEach(escola => {
-                selectEscola.innerHTML += `<option value="${escola.nome}">${escola.nome}</option>`;
-            });
+            atualizarSelectsColaboradores();
             
             document.getElementById('colabNome').value = '';
             document.getElementById('colabEmail').value = '';
@@ -1425,7 +1597,7 @@
             document.getElementById('colabCargo').value = '';
             document.getElementById('colabDepartamento').value = '';
             document.getElementById('colabCarga').value = '160';
-            window.colaboradorEditando = null;
+            colaboradorEditando = null;
         }
         
         function editarColaborador(id) {
@@ -1436,12 +1608,7 @@
             document.getElementById('screenFormColaborador').classList.add('active');
             document.getElementById('formColabTitle').innerHTML = '✏️ Editar Colaborador';
             
-            const selectEscola = document.getElementById('colabEscolaSelect');
-            selectEscola.innerHTML = '<option value="">Selecione a escola</option>';
-            escolas.forEach(escola => {
-                const selected = escola.nome === colab.escola ? 'selected' : '';
-                selectEscola.innerHTML += `<option value="${escola.nome}" ${selected}>${escola.nome}</option>`;
-            });
+            atualizarSelectsColaboradores();
             
             document.getElementById('colabNome').value = colab.nome || '';
             document.getElementById('colabEmail').value = colab.email || '';
@@ -1450,7 +1617,7 @@
             document.getElementById('colabCargo').value = colab.cargo || '';
             document.getElementById('colabDepartamento').value = colab.departamento || '';
             document.getElementById('colabCarga').value = colab.cargaHoraria || '160';
-            window.colaboradorEditando = id;
+            colaboradorEditando = id;
         }
         
         async function salvarColaborador() {
@@ -1480,11 +1647,19 @@
             };
             
             if (!usuarios.some(u => u.email === email)) {
-                usuarios.push({ email: email, senha: senha, matricula: matricula, nome: nome, escolaId: escolas.find(e => e.nome === escola)?.id });
+                const escolaObj = escolas.find(e => e.nome === escola);
+                usuarios.push({ 
+                    email: email, 
+                    senha: senha, 
+                    matricula: matricula, 
+                    nome: nome, 
+                    escolaId: escolaObj?.id || null,
+                    hash: null 
+                });
             }
             
-            if (window.colaboradorEditando) {
-                const resultado = await chamarAPI('editarColaborador', { id: window.colaboradorEditando, dadosColab: dados });
+            if (colaboradorEditando) {
+                const resultado = await chamarAPI('editarColaborador', { id: colaboradorEditando, dadosColab: dados });
                 alert(resultado.sucesso ? '✅ Colaborador editado!' : '❌ ' + resultado.mensagem);
             } else {
                 const resultado = await chamarAPI('adicionarColaborador', dados);
@@ -1564,15 +1739,7 @@
             document.getElementById('screenTI').classList.remove('active');
             document.getElementById('screenFormTroca').classList.add('active');
             
-            const saida = document.getElementById('trocaSaida');
-            const entrada = document.getElementById('trocaEntrada');
-            saida.innerHTML = '<option value="">Selecione</option>';
-            entrada.innerHTML = '<option value="">Selecione</option>';
-            
-            colaboradores.forEach(c => {
-                saida.innerHTML += `<option value="${c.matricula}">${c.nome} - ${c.matricula}</option>`;
-                entrada.innerHTML += `<option value="${c.matricula}">${c.nome} - ${c.matricula}</option>`;
-            });
+            atualizarSelectsColaboradores();
             
             const hoje = new Date().toISOString().split('T')[0];
             document.getElementById('trocaData').value = hoje;
@@ -1626,12 +1793,61 @@
             }
         }
         
+        // ================= USUÁRIOS TI =================
+        function mostrarFormNovoUsuario() {
+            if (!logadoTI) {
+                alert('Faça login na Área T.I primeiro!');
+                return;
+            }
+            document.getElementById('screenTI').classList.remove('active');
+            document.getElementById('screenFormUsuario').classList.add('active');
+            document.getElementById('userUsuario').value = '';
+            document.getElementById('userSenha').value = '';
+            document.getElementById('userTipo').value = 'Comum';
+        }
+        
+        async function salvarUsuarioTI() {
+            const usuario = document.getElementById('userUsuario').value.trim();
+            const senha = document.getElementById('userSenha').value.trim();
+            const tipo = document.getElementById('userTipo').value;
+            
+            if (!usuario || !senha) {
+                alert('Preencha todos os campos!');
+                return;
+            }
+            
+            const resultado = await chamarAPI('adicionarUsuarioTI', { usuario, senha, tipo });
+            alert(resultado.sucesso ? '✅ Usuário adicionado!' : '❌ ' + resultado.mensagem);
+            
+            if (resultado.sucesso) {
+                await listarUsuariosTI();
+                voltarParaTI();
+            }
+        }
+        
+        async function excluirUsuarioTI(usuario) {
+            if (usuario === 'admin') {
+                alert('⚠️ Não pode excluir o usuário admin!');
+                return;
+            }
+            
+            if (confirm(`Excluir usuário ${usuario}?`)) {
+                const resultado = await chamarAPI('excluirUsuarioTI', { usuario });
+                alert(resultado.sucesso ? '✅ Usuário excluído!' : '❌ ' + resultado.mensagem);
+                if (resultado.sucesso) {
+                    await listarUsuariosTI();
+                }
+            }
+        }
+        
+        // ================= BACKUP E FOLHA =================
         function fazerBackup() {
             if (!logadoTI) {
                 alert('Faça login na Área T.I primeiro!');
                 return;
             }
             const backup = {
+                escolas,
                 colaboradores,
                 registros: registrosPonto,
                 trocas: trocasTurno,
@@ -1704,10 +1920,8 @@
                 html += `
                     <h3>${escapeHtml(f.colaborador)} - ${escapeHtml(f.escola)}</h3>
                     <p>Carga Horária: ${f.cargaHoraria}h | Total: ${totalHoras.toFixed(2)}h</p>
-                       <table>
-                        <thead>
-                            <tr><th>Data</th><th>Entrada</th><th>Saída</th></tr>
-                        </thead>
+                    <table>
+                        <thead><tr><th>Data</th><th>Entrada</th><th>Saída</th></tr></thead>
                         <tbody>
                 `;
                 

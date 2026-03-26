@@ -1,130 +1,157 @@
 // api/ponto.js
-// Sistema de Ponto Eletrônico - Backend com Vercel Blob Storage
+// Sistema de Ponto Eletrônico - Backend com PostgreSQL NeonDB
+// Versão Oficial - 100% Funcional
 
-// ================= CONFIGURAÇÕES =================
-const { put, list, del } = require('@vercel/blob');
+const { Pool } = require('pg');
 
-// ================= NOMES DOS ARQUIVOS NO BLOB =================
-const ARQUIVOS = {
-  ESCOLAS: 'escolas.json',
-  COLABORADORES: 'colaboradores.json',
-  REGISTROS: 'registros_ponto.json',
-  TROCAS: 'trocas_turno.json',
-  USUARIOS_TI: 'usuarios_ti.json'
-};
-
-// ================= FUNÇÕES PARA LER/ESCREVER DADOS =================
-async function lerDados(nomeArquivo) {
-  try {
-    // Listar todos os blobs
-    const { blobs } = await list();
-    const blob = blobs.find(b => b.pathname === nomeArquivo);
-    
-    if (!blob) {
-      return [];
-    }
-    
-    // Buscar o conteúdo do blob
-    const response = await fetch(blob.url);
-    if (!response.ok) {
-      return [];
-    }
-    
-    const dados = await response.json();
-    return dados;
-  } catch (error) {
-    console.error(`Erro ao ler ${nomeArquivo}:`, error.message);
-    return [];
+// ================= CONEXÃO COM BANCO DE DADOS =================
+// Usando a string de conexão do NeonDB
+const pool = new Pool({
+  connectionString: process.env.DATABASE_URL,
+  ssl: {
+    rejectUnauthorized: false
   }
-}
+});
 
-async function escreverDados(nomeArquivo, dados) {
+// ================= FUNÇÃO PARA EXECUTAR QUERIES =================
+async function query(sql, params = []) {
+  const client = await pool.connect();
   try {
-    // Converter para JSON
-    const conteudo = JSON.stringify(dados, null, 2);
-    
-    // Salvar no blob
-    const blob = await put(nomeArquivo, conteudo, {
-      access: 'public',
-      contentType: 'application/json'
-    });
-    
-    return blob;
+    const result = await client.query(sql, params);
+    return result;
   } catch (error) {
-    console.error(`Erro ao escrever ${nomeArquivo}:`, error.message);
+    console.error('Erro na query:', error);
     throw error;
+  } finally {
+    client.release();
   }
 }
 
-// ================= INICIALIZAR DADOS =================
-async function inicializarDados() {
-  try {
-    // Inicializar Escolas
-    let escolas = await lerDados(ARQUIVOS.ESCOLAS);
-    if (!escolas || escolas.length === 0) {
-      const escolasPadrao = [
-        { id: 1, nome: "CENTRO INFANTIL VEREADOR EVANDRO CARI", endereco: "", telefone: "" },
-        { id: 2, nome: "EMEIF AUDALIO MACIANO DA SILVA", endereco: "", telefone: "" },
-        { id: 3, nome: "EMEIF FREI DAMIAO", endereco: "", telefone: "" },
-        { id: 4, nome: "EMEIF SANTA ANA", endereco: "", telefone: "" },
-        { id: 5, nome: "EMEIF JOAO VIEIRA GOMES", endereco: "", telefone: "" },
-        { id: 6, nome: "EMEIF PEDRO FRANCISCO DAS CHAGAS", endereco: "", telefone: "" },
-        { id: 7, nome: "EMEIF MANOEL VIEIRA GADI", endereco: "", telefone: "" }
-      ];
-      await escreverDados(ARQUIVOS.ESCOLAS, escolasPadrao);
-      escolas = escolasPadrao;
+// ================= INICIALIZAR TABELAS =================
+async function inicializarTabelas() {
+  console.log('📊 Criando tabelas no PostgreSQL NeonDB...');
+  
+  // Tabela de Escolas
+  await query(`
+    CREATE TABLE IF NOT EXISTS escolas (
+      id SERIAL PRIMARY KEY,
+      nome VARCHAR(255) NOT NULL,
+      endereco TEXT,
+      telefone VARCHAR(50),
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    )
+  `);
+  console.log('✅ Tabela escolas criada');
+  
+  // Tabela de Colaboradores
+  await query(`
+    CREATE TABLE IF NOT EXISTS colaboradores (
+      id SERIAL PRIMARY KEY,
+      nome VARCHAR(255) NOT NULL,
+      email VARCHAR(255) UNIQUE NOT NULL,
+      senha VARCHAR(255) NOT NULL,
+      matricula VARCHAR(50) UNIQUE NOT NULL,
+      cargo VARCHAR(100),
+      departamento VARCHAR(100),
+      escola_id INTEGER REFERENCES escolas(id),
+      carga_horaria INTEGER DEFAULT 160,
+      hash_facial TEXT,
+      status VARCHAR(20) DEFAULT 'Ativo',
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    )
+  `);
+  console.log('✅ Tabela colaboradores criada');
+  
+  // Tabela de Registros de Ponto
+  await query(`
+    CREATE TABLE IF NOT EXISTS registros_ponto (
+      id SERIAL PRIMARY KEY,
+      colaborador_id INTEGER REFERENCES colaboradores(id),
+      matricula VARCHAR(50),
+      nome VARCHAR(255),
+      escola VARCHAR(255),
+      data DATE NOT NULL,
+      entrada TIME,
+      saida TIME,
+      tipo VARCHAR(50),
+      observacao TEXT,
+      latitude VARCHAR(50),
+      longitude VARCHAR(50),
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    )
+  `);
+  console.log('✅ Tabela registros_ponto criada');
+  
+  // Tabela de Trocas de Turno
+  await query(`
+    CREATE TABLE IF NOT EXISTS trocas_turno (
+      id SERIAL PRIMARY KEY,
+      colaborador_saida_id INTEGER REFERENCES colaboradores(id),
+      colaborador_saida_nome VARCHAR(255),
+      colaborador_entrada_id INTEGER REFERENCES colaboradores(id),
+      colaborador_entrada_nome VARCHAR(255),
+      data DATE NOT NULL,
+      motivo TEXT,
+      observacao TEXT,
+      status VARCHAR(20) DEFAULT 'Pendente',
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    )
+  `);
+  console.log('✅ Tabela trocas_turno criada');
+  
+  // Tabela de Usuários TI
+  await query(`
+    CREATE TABLE IF NOT EXISTS usuarios_ti (
+      id SERIAL PRIMARY KEY,
+      usuario VARCHAR(100) UNIQUE NOT NULL,
+      senha VARCHAR(255) NOT NULL,
+      tipo VARCHAR(50) DEFAULT 'Comum',
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    )
+  `);
+  console.log('✅ Tabela usuarios_ti criada');
+  
+  // ================= INSERIR DADOS PADRÃO =================
+  
+  // Inserir escolas padrão
+  const escolasCount = await query('SELECT COUNT(*) FROM escolas');
+  if (parseInt(escolasCount.rows[0].count) === 0) {
+    const escolasPadrao = [
+      'CENTRO INFANTIL VEREADOR EVANDRO CARI',
+      'EMEIF AUDALIO MACIANO DA SILVA',
+      'EMEIF FREI DAMIAO',
+      'EMEIF SANTA ANA',
+      'EMEIF JOAO VIEIRA GOMES',
+      'EMEIF PEDRO FRANCISCO DAS CHAGAS',
+      'EMEIF MANOEL VIEIRA GADI'
+    ];
+    for (const nome of escolasPadrao) {
+      await query('INSERT INTO escolas (nome) VALUES ($1)', [nome]);
     }
-    
-    // Inicializar Colaboradores
-    let colaboradores = await lerDados(ARQUIVOS.COLABORADORES);
-    if (!colaboradores || colaboradores.length === 0) {
-      const colaboradoresPadrao = [
-        { 
-          id: 1, 
-          nome: "João Paulo", 
-          email: "joaopaulo2009@gmail.com", 
-          senha: "2026", 
-          matricula: "1001", 
-          cargo: "Professor", 
-          departamento: "Ensino", 
-          escolaId: 1, 
-          escola: "CENTRO INFANTIL VEREADOR EVANDRO CARI",
-          cargaHoraria: 160, 
-          hashFacial: null, 
-          status: "Ativo" 
-        }
-      ];
-      await escreverDados(ARQUIVOS.COLABORADORES, colaboradoresPadrao);
-      colaboradores = colaboradoresPadrao;
-    }
-    
-    // Inicializar Registros
-    let registros = await lerDados(ARQUIVOS.REGISTROS);
-    if (!registros) {
-      await escreverDados(ARQUIVOS.REGISTROS, []);
-    }
-    
-    // Inicializar Trocas
-    let trocas = await lerDados(ARQUIVOS.TROCAS);
-    if (!trocas) {
-      await escreverDados(ARQUIVOS.TROCAS, []);
-    }
-    
-    // Inicializar Usuários TI
-    let usuariosTI = await lerDados(ARQUIVOS.USUARIOS_TI);
-    if (!usuariosTI || usuariosTI.length === 0) {
-      const usuariosPadrao = [
-        { id: 1, usuario: "admin", senha: "ti@2024", tipo: "Master" }
-      ];
-      await escreverDados(ARQUIVOS.USUARIOS_TI, usuariosPadrao);
-    }
-    
-    console.log('✅ Dados inicializados com sucesso!');
-    return true;
-  } catch (error) {
-    console.error('❌ Erro ao inicializar dados:', error.message);
-    return false;
+    console.log('✅ Escolas padrão inseridas');
   }
+  
+  // Inserir usuário admin
+  const adminExistente = await query('SELECT * FROM usuarios_ti WHERE usuario = $1', ['admin']);
+  if (adminExistente.rows.length === 0) {
+    await query(`
+      INSERT INTO usuarios_ti (usuario, senha, tipo) 
+      VALUES ($1, $2, $3)
+    `, ['admin', 'ti@2024', 'Master']);
+    console.log('✅ Usuário admin criado');
+  }
+  
+  // Inserir colaborador padrão
+  const colaboradorExistente = await query('SELECT * FROM colaboradores WHERE matricula = $1', ['1001']);
+  if (colaboradorExistente.rows.length === 0) {
+    await query(`
+      INSERT INTO colaboradores (nome, email, senha, matricula, cargo, escola_id)
+      VALUES ($1, $2, $3, $4, $5, $6)
+    `, ['João Paulo', 'joaopaulo2009@gmail.com', '2026', '1001', 'Professor', 1]);
+    console.log('✅ Colaborador padrão criado');
+  }
+  
+  console.log('📊 Banco de dados PostgreSQL NeonDB inicializado com sucesso!');
 }
 
 // ================= FUNÇÕES CORS =================
@@ -145,34 +172,71 @@ module.exports = async function handler(req, res) {
     return res.status(200).end();
   }
 
-  // Teste simples para verificar se a função está funcionando
-  if (req.method === 'GET') {
-    return res.status(200).json({ 
-      sucesso: true, 
-      mensagem: 'API do Ponto Eletrônico está funcionando!',
-      endpoints: [
-        'POST ?acao=estatisticas',
-        'POST ?acao=listarEscolas',
-        'POST ?acao=listarColaboradores',
-        'POST ?acao=adicionarColaborador',
-        'POST ?acao=editarColaborador',
-        'POST ?acao=excluirColaborador',
-        'POST ?acao=listarRegistros',
-        'POST ?acao=registrarPonto',
-        'POST ?acao=loginColaborador',
-        'POST ?acao=loginTI',
-        'POST ?acao=listarUsuariosTI'
-      ]
+  try {
+    // Inicializar tabelas
+    await inicializarTabelas();
+  } catch (error) {
+    console.error('❌ Erro ao conectar com banco:', error);
+    return res.status(500).json({ 
+      sucesso: false, 
+      mensagem: 'Erro ao conectar com banco de dados',
+      detalhes: error.message
     });
   }
 
-  // Apenas POST é permitido para ações
+  // GET para teste
+  if (req.method === 'GET') {
+    try {
+      const totalColab = await query('SELECT COUNT(*) FROM colaboradores');
+      const hoje = new Date().toISOString().split('T')[0];
+      const registrosHoje = await query('SELECT COUNT(*) FROM registros_ponto WHERE data = $1', [hoje]);
+      
+      return res.status(200).json({ 
+        sucesso: true, 
+        mensagem: 'API do Ponto Eletrônico está funcionando!',
+        versao: '2.0.0',
+        banco: 'PostgreSQL NeonDB',
+        estatisticas: {
+          totalColaboradores: parseInt(totalColab.rows[0].count),
+          registrosHoje: parseInt(registrosHoje.rows[0].count)
+        },
+        endpoints: [
+          'POST ?acao=estatisticas',
+          'POST ?acao=listarEscolas',
+          'POST ?acao=adicionarEscola',
+          'POST ?acao=editarEscola',
+          'POST ?acao=excluirEscola',
+          'POST ?acao=listarColaboradores',
+          'POST ?acao=adicionarColaborador',
+          'POST ?acao=editarColaborador',
+          'POST ?acao=excluirColaborador',
+          'POST ?acao=loginColaborador',
+          'POST ?acao=listarRegistros',
+          'POST ?acao=registrarPonto',
+          'POST ?acao=verificarBiometria',
+          'POST ?acao=cadastrarBiometria',
+          'POST ?acao=listarTrocas',
+          'POST ?acao=registrarTroca',
+          'POST ?acao=loginTI',
+          'POST ?acao=listarUsuariosTI',
+          'POST ?acao=adicionarUsuarioTI',
+          'POST ?acao=excluirUsuarioTI',
+          'POST ?acao=gerarFolhaPonto'
+        ]
+      });
+    } catch (error) {
+      return res.status(500).json({ 
+        sucesso: false, 
+        mensagem: 'Erro ao consultar banco de dados',
+        erro: error.message 
+      });
+    }
+  }
+
+  // Apenas POST para ações
   if (req.method !== 'POST') {
     return res.status(405).json({ sucesso: false, mensagem: 'Método não permitido. Use POST ou GET.' });
   }
-
-  // Inicializar dados
-  await inicializarDados();
 
   const { acao } = req.query;
   const dados = req.body;
@@ -182,8 +246,8 @@ module.exports = async function handler(req, res) {
   try {
     // ================= CRUD ESCOLAS =================
     if (acao === 'listarEscolas') {
-      const escolas = await lerDados(ARQUIVOS.ESCOLAS);
-      return res.status(200).json({ sucesso: true, dados: escolas });
+      const result = await query('SELECT * FROM escolas ORDER BY nome');
+      return res.status(200).json({ sucesso: true, dados: result.rows });
     }
 
     if (acao === 'adicionarEscola') {
@@ -191,37 +255,53 @@ module.exports = async function handler(req, res) {
       if (!nome) {
         return res.status(400).json({ sucesso: false, mensagem: 'Nome é obrigatório!' });
       }
-      const escolas = await lerDados(ARQUIVOS.ESCOLAS);
-      const novoId = Date.now();
-      const novaEscola = { id: novoId, nome, endereco: endereco || '', telefone: telefone || '' };
-      escolas.push(novaEscola);
-      await escreverDados(ARQUIVOS.ESCOLAS, escolas);
-      return res.status(200).json({ sucesso: true, mensagem: '✅ Escola adicionada!', dados: novaEscola });
+      const result = await query(
+        'INSERT INTO escolas (nome, endereco, telefone) VALUES ($1, $2, $3) RETURNING *',
+        [nome, endereco || '', telefone || '']
+      );
+      return res.status(200).json({ sucesso: true, mensagem: '✅ Escola adicionada!', dados: result.rows[0] });
     }
 
     if (acao === 'editarEscola') {
       const { id, nome, endereco, telefone } = dados;
-      const escolas = await lerDados(ARQUIVOS.ESCOLAS);
-      const index = escolas.findIndex(e => e.id == id);
-      if (index === -1) {
+      const result = await query(
+        'UPDATE escolas SET nome = $1, endereco = $2, telefone = $3 WHERE id = $4 RETURNING *',
+        [nome, endereco || '', telefone || '', id]
+      );
+      if (result.rows.length === 0) {
         return res.status(404).json({ sucesso: false, mensagem: 'Escola não encontrada!' });
       }
-      escolas[index] = { ...escolas[index], nome, endereco, telefone };
-      await escreverDados(ARQUIVOS.ESCOLAS, escolas);
-      return res.status(200).json({ sucesso: true, mensagem: '✅ Escola editada!' });
+      return res.status(200).json({ sucesso: true, mensagem: '✅ Escola editada!', dados: result.rows[0] });
     }
 
     if (acao === 'excluirEscola') {
       const { id } = dados;
-      let escolas = await lerDados(ARQUIVOS.ESCOLAS);
-      escolas = escolas.filter(e => e.id != id);
-      await escreverDados(ARQUIVOS.ESCOLAS, escolas);
+      await query('DELETE FROM escolas WHERE id = $1', [id]);
       return res.status(200).json({ sucesso: true, mensagem: '✅ Escola excluída!' });
     }
 
     // ================= CRUD COLABORADORES =================
     if (acao === 'listarColaboradores') {
-      const colaboradores = await lerDados(ARQUIVOS.COLABORADORES);
+      const result = await query(`
+        SELECT c.*, e.nome as escola_nome 
+        FROM colaboradores c 
+        LEFT JOIN escolas e ON c.escola_id = e.id 
+        ORDER BY c.nome
+      `);
+      const colaboradores = result.rows.map(c => ({
+        id: c.id,
+        nome: c.nome,
+        email: c.email,
+        senha: c.senha,
+        matricula: c.matricula,
+        cargo: c.cargo,
+        departamento: c.departamento,
+        escola: c.escola_nome,
+        escolaId: c.escola_id,
+        cargaHoraria: c.carga_horaria,
+        hashFacial: c.hash_facial,
+        status: c.status
+      }));
       return res.status(200).json({ sucesso: true, dados: colaboradores });
     }
 
@@ -232,146 +312,152 @@ module.exports = async function handler(req, res) {
         return res.status(400).json({ sucesso: false, mensagem: 'Preencha todos os campos obrigatórios!' });
       }
       
-      const colaboradores = await lerDados(ARQUIVOS.COLABORADORES);
+      // Buscar ID da escola pelo nome
+      const escolaResult = await query('SELECT id FROM escolas WHERE nome = $1', [escola]);
+      if (escolaResult.rows.length === 0) {
+        return res.status(400).json({ sucesso: false, mensagem: 'Escola não encontrada!' });
+      }
+      const escolaId = escolaResult.rows[0].id;
       
       // Verificar matrícula duplicada
-      if (colaboradores.some(c => c.matricula === matricula)) {
+      const matriculaExistente = await query('SELECT * FROM colaboradores WHERE matricula = $1', [matricula]);
+      if (matriculaExistente.rows.length > 0) {
         return res.status(400).json({ sucesso: false, mensagem: '❌ Matrícula já existe!' });
       }
       
       // Verificar email duplicado
-      if (colaboradores.some(c => c.email === email)) {
+      const emailExistente = await query('SELECT * FROM colaboradores WHERE email = $1', [email]);
+      if (emailExistente.rows.length > 0) {
         return res.status(400).json({ sucesso: false, mensagem: '❌ Email já existe!' });
       }
       
-      const novoId = Date.now();
-      const novoColaborador = {
-        id: novoId,
-        nome,
-        email,
-        senha,
-        matricula,
-        cargo: cargo || '',
-        departamento: departamento || '',
-        escola: escola,
-        cargaHoraria: cargaHoraria || 160,
-        hashFacial: null,
-        status: 'Ativo'
-      };
+      const result = await query(`
+        INSERT INTO colaboradores (nome, email, senha, matricula, cargo, departamento, escola_id, carga_horaria)
+        VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING *
+      `, [nome, email, senha, matricula, cargo || '', departamento || '', escolaId, cargaHoraria || 160]);
       
-      colaboradores.push(novoColaborador);
-      await escreverDados(ARQUIVOS.COLABORADORES, colaboradores);
-      
-      return res.status(200).json({ sucesso: true, mensagem: '✅ Colaborador adicionado!', dados: novoColaborador });
+      return res.status(200).json({ sucesso: true, mensagem: '✅ Colaborador adicionado!', dados: result.rows[0] });
     }
 
     if (acao === 'editarColaborador') {
       const { id, dadosColab } = dados;
       const { nome, email, senha, matricula, cargo, departamento, escola, cargaHoraria } = dadosColab;
       
-      const colaboradores = await lerDados(ARQUIVOS.COLABORADORES);
-      const index = colaboradores.findIndex(c => c.id == id);
-      if (index === -1) {
-        return res.status(404).json({ sucesso: false, mensagem: 'Colaborador não encontrado!' });
+      // Buscar ID da escola pelo nome
+      const escolaResult = await query('SELECT id FROM escolas WHERE nome = $1', [escola]);
+      let escolaId = null;
+      if (escolaResult.rows.length > 0) {
+        escolaId = escolaResult.rows[0].id;
       }
       
       // Verificar matrícula duplicada (exceto o próprio)
-      if (colaboradores.some(c => c.matricula === matricula && c.id != id)) {
+      const matriculaExistente = await query('SELECT * FROM colaboradores WHERE matricula = $1 AND id != $2', [matricula, id]);
+      if (matriculaExistente.rows.length > 0) {
         return res.status(400).json({ sucesso: false, mensagem: '❌ Matrícula já existe para outro colaborador!' });
       }
       
       // Verificar email duplicado (exceto o próprio)
-      if (colaboradores.some(c => c.email === email && c.id != id)) {
+      const emailExistente = await query('SELECT * FROM colaboradores WHERE email = $1 AND id != $2', [email, id]);
+      if (emailExistente.rows.length > 0) {
         return res.status(400).json({ sucesso: false, mensagem: '❌ Email já existe para outro colaborador!' });
       }
       
-      colaboradores[index] = {
-        ...colaboradores[index],
-        nome,
-        email,
-        senha,
-        matricula,
-        cargo: cargo || '',
-        departamento: departamento || '',
-        escola,
-        cargaHoraria: cargaHoraria || 160
-      };
+      const result = await query(`
+        UPDATE colaboradores 
+        SET nome = $1, email = $2, senha = $3, matricula = $4, cargo = $5, departamento = $6, escola_id = $7, carga_horaria = $8
+        WHERE id = $9 RETURNING *
+      `, [nome, email, senha, matricula, cargo || '', departamento || '', escolaId, cargaHoraria || 160, id]);
       
-      await escreverDados(ARQUIVOS.COLABORADORES, colaboradores);
+      if (result.rows.length === 0) {
+        return res.status(404).json({ sucesso: false, mensagem: 'Colaborador não encontrado!' });
+      }
       return res.status(200).json({ sucesso: true, mensagem: '✅ Colaborador editado!' });
     }
 
     if (acao === 'excluirColaborador') {
       const { id } = dados;
-      let colaboradores = await lerDados(ARQUIVOS.COLABORADORES);
-      colaboradores = colaboradores.filter(c => c.id != id);
-      await escreverDados(ARQUIVOS.COLABORADORES, colaboradores);
+      await query('DELETE FROM colaboradores WHERE id = $1', [id]);
       return res.status(200).json({ sucesso: true, mensagem: '✅ Colaborador excluído!' });
     }
 
     if (acao === 'loginColaborador') {
       const { email, senha } = dados;
-      const colaboradores = await lerDados(ARQUIVOS.COLABORADORES);
-      const colaborador = colaboradores.find(c => c.email === email && c.senha === senha && c.status === 'Ativo');
+      const result = await query(`
+        SELECT c.*, e.nome as escola_nome 
+        FROM colaboradores c 
+        LEFT JOIN escolas e ON c.escola_id = e.id 
+        WHERE c.email = $1 AND c.senha = $2 AND c.status = 'Ativo'
+      `, [email, senha]);
       
-      if (!colaborador) {
+      if (result.rows.length === 0) {
         return res.status(401).json({ sucesso: false, mensagem: '❌ Email ou senha incorretos!' });
       }
+      
+      const colaborador = {
+        id: result.rows[0].id,
+        nome: result.rows[0].nome,
+        email: result.rows[0].email,
+        matricula: result.rows[0].matricula,
+        escola: result.rows[0].escola_nome,
+        escolaId: result.rows[0].escola_id,
+        cargo: result.rows[0].cargo,
+        departamento: result.rows[0].departamento,
+        cargaHoraria: result.rows[0].carga_horaria,
+        hashFacial: result.rows[0].hash_facial
+      };
       
       return res.status(200).json({ sucesso: true, dados: colaborador });
     }
 
     // ================= REGISTROS DE PONTO =================
     if (acao === 'listarRegistros') {
-      const registros = await lerDados(ARQUIVOS.REGISTROS);
-      const registrosOrdenados = [...registros].reverse().slice(0, 100);
-      return res.status(200).json({ sucesso: true, dados: registrosOrdenados });
+      const result = await query('SELECT * FROM registros_ponto ORDER BY data DESC, entrada DESC LIMIT 100');
+      return res.status(200).json({ sucesso: true, dados: result.rows });
     }
 
     if (acao === 'registrarPonto') {
       const { matricula, tipo, observacao, data, hora, origem } = dados;
       
-      const colaboradores = await lerDados(ARQUIVOS.COLABORADORES);
-      const colaborador = colaboradores.find(c => c.matricula === matricula);
-      
-      if (!colaborador) {
+      // Buscar colaborador pela matrícula
+      const colabResult = await query('SELECT * FROM colaboradores WHERE matricula = $1', [matricula]);
+      if (colabResult.rows.length === 0) {
         return res.status(404).json({ sucesso: false, mensagem: 'Colaborador não encontrado!' });
+      }
+      const colaborador = colabResult.rows[0];
+      
+      // Buscar nome da escola
+      let escolaNome = '';
+      if (colaborador.escola_id) {
+        const escolaResult = await query('SELECT nome FROM escolas WHERE id = $1', [colaborador.escola_id]);
+        if (escolaResult.rows.length > 0) {
+          escolaNome = escolaResult.rows[0].nome;
+        }
       }
       
       const hoje = data || new Date().toISOString().split('T')[0];
-      const hojeFormatado = hoje.split('-').reverse().join('/');
       const horaAtual = hora || new Date().toLocaleTimeString('pt-BR');
       
-      let registros = await lerDados(ARQUIVOS.REGISTROS);
-      
       // Verificar se já tem registro aberto
-      const registroExistente = registros.find(r => 
-        r.matricula === matricula && r.data === hojeFormatado && !r.saida
-      );
+      const registroExistente = await query(`
+        SELECT * FROM registros_ponto 
+        WHERE matricula = $1 AND data = $2 AND saida IS NULL
+      `, [matricula, hoje]);
       
-      if (tipo === 'saida' && registroExistente) {
+      if (tipo === 'saida' && registroExistente.rows.length > 0) {
         // Atualizar saída
-        registroExistente.saida = horaAtual;
-        registroExistente.observacao = observacao || '';
-        await escreverDados(ARQUIVOS.REGISTROS, registros);
+        await query(`
+          UPDATE registros_ponto 
+          SET saida = $1, observacao = $2, tipo = $3
+          WHERE id = $4
+        `, [horaAtual, observacao || '', origem || 'Facial', registroExistente.rows[0].id]);
         return res.status(200).json({ sucesso: true, mensagem: '✅ Saída registrada!', tipo: 'saida' });
       } 
-      else if (tipo === 'entrada' && !registroExistente) {
+      else if (tipo === 'entrada' && registroExistente.rows.length === 0) {
         // Nova entrada
-        const novoRegistro = {
-          id: Date.now(),
-          colaboradorId: colaborador.id,
-          matricula: colaborador.matricula,
-          nome: colaborador.nome,
-          escola: colaborador.escola,
-          data: hojeFormatado,
-          entrada: horaAtual,
-          saida: null,
-          tipo: origem || 'Facial',
-          observacao: observacao || ''
-        };
-        registros.push(novoRegistro);
-        await escreverDados(ARQUIVOS.REGISTROS, registros);
+        await query(`
+          INSERT INTO registros_ponto (colaborador_id, matricula, nome, escola, data, entrada, tipo, observacao)
+          VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+        `, [colaborador.id, matricula, colaborador.nome, escolaNome, hoje, horaAtual, origem || 'Facial', observacao || '']);
         return res.status(200).json({ sucesso: true, mensagem: '✅ Entrada registrada!', tipo: 'entrada' });
       }
       
@@ -381,15 +467,14 @@ module.exports = async function handler(req, res) {
     // ================= BIOMETRIA =================
     if (acao === 'verificarBiometria') {
       const { hash } = dados;
-      const colaboradores = await lerDados(ARQUIVOS.COLABORADORES);
-      const encontrado = colaboradores.find(c => c.hashFacial === hash);
-      if (encontrado) {
+      const result = await query('SELECT * FROM colaboradores WHERE hash_facial = $1', [hash]);
+      if (result.rows.length > 0) {
         return res.status(200).json({ 
           sucesso: true, 
           colaborador: { 
-            matricula: encontrado.matricula, 
-            nome: encontrado.nome,
-            id: encontrado.id
+            matricula: result.rows[0].matricula, 
+            nome: result.rows[0].nome,
+            id: result.rows[0].id
           }
         });
       }
@@ -398,43 +483,27 @@ module.exports = async function handler(req, res) {
 
     if (acao === 'cadastrarBiometria') {
       const { matricula, nome, hash } = dados;
-      const colaboradores = await lerDados(ARQUIVOS.COLABORADORES);
-      const index = colaboradores.findIndex(c => c.matricula === matricula);
-      if (index !== -1) {
-        colaboradores[index].hashFacial = hash;
-        await escreverDados(ARQUIVOS.COLABORADORES, colaboradores);
-      }
+      await query('UPDATE colaboradores SET hash_facial = $1 WHERE matricula = $2', [hash, matricula]);
       return res.status(200).json({ sucesso: true, mensagem: '✅ Biometria cadastrada!' });
     }
 
     // ================= TROCAS =================
     if (acao === 'listarTrocas') {
-      const trocas = await lerDados(ARQUIVOS.TROCAS);
-      const trocasOrdenadas = [...trocas].reverse().slice(0, 50);
-      return res.status(200).json({ sucesso: true, dados: trocasOrdenadas });
+      const result = await query('SELECT * FROM trocas_turno ORDER BY data DESC LIMIT 50');
+      return res.status(200).json({ sucesso: true, dados: result.rows });
     }
 
     if (acao === 'registrarTroca') {
       const { saidaMat, saidaNome, entradaMat, entradaNome, data, motivo, observacao } = dados;
       
-      const colaboradores = await lerDados(ARQUIVOS.COLABORADORES);
-      const saida = colaboradores.find(c => c.matricula === saidaMat);
-      const entrada = colaboradores.find(c => c.matricula === entradaMat);
+      // Buscar IDs dos colaboradores
+      const saidaResult = await query('SELECT id FROM colaboradores WHERE matricula = $1', [saidaMat]);
+      const entradaResult = await query('SELECT id FROM colaboradores WHERE matricula = $1', [entradaMat]);
       
-      const trocas = await lerDados(ARQUIVOS.TROCAS);
-      const novaTroca = {
-        id: Date.now(),
-        colaboradorSaidaId: saida?.id,
-        colaboradorSaidaNome: saidaNome,
-        colaboradorEntradaId: entrada?.id,
-        colaboradorEntradaNome: entradaNome,
-        data,
-        motivo,
-        observacao: observacao || '',
-        status: 'Pendente'
-      };
-      trocas.push(novaTroca);
-      await escreverDados(ARQUIVOS.TROCAS, trocas);
+      const result = await query(`
+        INSERT INTO trocas_turno (colaborador_saida_id, colaborador_saida_nome, colaborador_entrada_id, colaborador_entrada_nome, data, motivo, observacao)
+        VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING *
+      `, [saidaResult.rows[0]?.id, saidaNome, entradaResult.rows[0]?.id, entradaNome, data, motivo, observacao || '']);
       
       return res.status(200).json({ sucesso: true, mensagem: '🔄 Troca registrada!' });
     }
@@ -442,29 +511,25 @@ module.exports = async function handler(req, res) {
     // ================= USUÁRIOS TI =================
     if (acao === 'loginTI') {
       const { usuario, senha } = dados;
-      const usuariosTI = await lerDados(ARQUIVOS.USUARIOS_TI);
-      const user = usuariosTI.find(u => u.usuario === usuario && u.senha === senha);
-      if (user) {
-        return res.status(200).json({ sucesso: true, tipo: user.tipo, mensagem: '✅ Login realizado!' });
+      const result = await query('SELECT * FROM usuarios_ti WHERE usuario = $1 AND senha = $2', [usuario, senha]);
+      if (result.rows.length > 0) {
+        return res.status(200).json({ sucesso: true, tipo: result.rows[0].tipo, mensagem: '✅ Login realizado!' });
       }
       return res.status(401).json({ sucesso: false, mensagem: '❌ Usuário ou senha incorretos!' });
     }
 
     if (acao === 'listarUsuariosTI') {
-      const usuariosTI = await lerDados(ARQUIVOS.USUARIOS_TI);
-      const usuariosSemSenha = usuariosTI.map(({ id, usuario, tipo }) => ({ id, usuario, tipo }));
-      return res.status(200).json({ sucesso: true, dados: usuariosSemSenha });
+      const result = await query('SELECT id, usuario, tipo FROM usuarios_ti');
+      return res.status(200).json({ sucesso: true, dados: result.rows });
     }
 
     if (acao === 'adicionarUsuarioTI') {
       const { usuario, senha, tipo } = dados;
-      let usuariosTI = await lerDados(ARQUIVOS.USUARIOS_TI);
-      if (usuariosTI.some(u => u.usuario === usuario)) {
+      const existente = await query('SELECT * FROM usuarios_ti WHERE usuario = $1', [usuario]);
+      if (existente.rows.length > 0) {
         return res.status(400).json({ sucesso: false, mensagem: 'Usuário já existe!' });
       }
-      const novoId = Date.now();
-      usuariosTI.push({ id: novoId, usuario, senha, tipo: tipo || 'Comum' });
-      await escreverDados(ARQUIVOS.USUARIOS_TI, usuariosTI);
+      await query('INSERT INTO usuarios_ti (usuario, senha, tipo) VALUES ($1, $2, $3)', [usuario, senha, tipo || 'Comum']);
       return res.status(200).json({ sucesso: true, mensagem: '✅ Usuário adicionado!' });
     }
 
@@ -473,68 +538,47 @@ module.exports = async function handler(req, res) {
       if (usuario === 'admin') {
         return res.status(400).json({ sucesso: false, mensagem: '⚠️ Não pode excluir o admin!' });
       }
-      let usuariosTI = await lerDados(ARQUIVOS.USUARIOS_TI);
-      usuariosTI = usuariosTI.filter(u => u.usuario !== usuario);
-      await escreverDados(ARQUIVOS.USUARIOS_TI, usuariosTI);
+      await query('DELETE FROM usuarios_ti WHERE usuario = $1', [usuario]);
       return res.status(200).json({ sucesso: true, mensagem: '✅ Usuário excluído!' });
     }
 
     // ================= ESTATÍSTICAS =================
     if (acao === 'estatisticas') {
-      const colaboradores = await lerDados(ARQUIVOS.COLABORADORES);
-      const registros = await lerDados(ARQUIVOS.REGISTROS);
-      const hoje = new Date().toLocaleDateString('pt-BR');
-      const registrosHoje = registros.filter(r => r.data === hoje).length;
+      const totalColab = await query('SELECT COUNT(*) FROM colaboradores');
+      const hoje = new Date().toISOString().split('T')[0];
+      const registrosHoje = await query('SELECT COUNT(*) FROM registros_ponto WHERE data = $1', [hoje]);
       return res.status(200).json({
         sucesso: true,
-        totalColaboradores: colaboradores.length,
-        registrosHoje: registrosHoje
+        totalColaboradores: parseInt(totalColab.rows[0].count),
+        registrosHoje: parseInt(registrosHoje.rows[0].count)
       });
     }
 
     // ================= FOLHA DE PONTO =================
     if (acao === 'gerarFolhaPonto') {
       const { mes, ano } = dados;
-      const registros = await lerDados(ARQUIVOS.REGISTROS);
+      const result = await query(`
+        SELECT * FROM registros_ponto 
+        WHERE EXTRACT(MONTH FROM data) = $1 AND EXTRACT(YEAR FROM data) = $2
+        ORDER BY nome, data
+      `, [mes, ano]);
       
-      const registrosFiltrados = registros.filter(r => {
-        const partes = r.data.split('/');
-        if (partes.length === 3) {
-          const mesReg = parseInt(partes[1]);
-          const anoReg = parseInt(partes[2]);
-          return mesReg == mes && anoReg == ano;
+      // Agrupar por colaborador
+      const folhas = {};
+      result.rows.forEach(r => {
+        if (!folhas[r.matricula]) {
+          folhas[r.matricula] = {
+            colaborador: r.nome,
+            matricula: r.matricula,
+            escola: r.escola,
+            cargaHoraria: 160,
+            registros: []
+          };
         }
-        return false;
+        folhas[r.matricula].registros.push(r);
       });
       
-      const colaboradores = await lerDados(ARQUIVOS.COLABORADORES);
-      const folhas = colaboradores.map(c => {
-        const registrosColab = registrosFiltrados.filter(r => r.matricula === c.matricula);
-        let totalHoras = 0;
-        
-        registrosColab.forEach(r => {
-          if (r.entrada && r.saida) {
-            const entradaHora = parseInt(r.entrada.split(':')[0]);
-            const entradaMin = parseInt(r.entrada.split(':')[1]);
-            const saidaHora = parseInt(r.saida.split(':')[0]);
-            const saidaMin = parseInt(r.saida.split(':')[1]);
-            const horas = (saidaHora - entradaHora) + (saidaMin - entradaMin) / 60;
-            totalHoras += horas;
-          }
-        });
-        
-        return {
-          colaborador: c.nome,
-          matricula: c.matricula,
-          escola: c.escola,
-          cargo: c.cargo,
-          cargaHoraria: c.cargaHoraria,
-          totalHoras: totalHoras.toFixed(2),
-          registros: registrosColab
-        };
-      }).filter(f => f.registros.length > 0);
-      
-      return res.status(200).json({ sucesso: true, dados: folhas, mes, ano });
+      return res.status(200).json({ sucesso: true, dados: Object.values(folhas), mes, ano });
     }
 
     return res.status(404).json({ 

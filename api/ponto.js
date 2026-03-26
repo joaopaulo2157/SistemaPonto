@@ -1,6 +1,6 @@
 // api/ponto.js
 // Sistema de Ponto Eletrônico - Backend com PostgreSQL NeonDB
-// Versão Corrigida
+// Versão Oficial - 100% Funcional
 
 const { Pool } = require('pg');
 
@@ -113,7 +113,7 @@ async function inicializarTabelas() {
       )
     `);
     
-    console.log('✅ Tabelas criadas/verificadas com sucesso!');
+    console.log('✅ Tabelas criadas/verificadas!');
     
     // Inserir escolas padrão
     const escolasCount = await query('SELECT COUNT(*) FROM escolas');
@@ -143,10 +143,12 @@ async function inicializarTabelas() {
     // Inserir colaborador padrão
     const colaboradorExistente = await query('SELECT * FROM colaboradores WHERE matricula = $1', ['1001']);
     if (colaboradorExistente.rows.length === 0) {
+      const escolaResult = await query('SELECT id FROM escolas LIMIT 1');
+      const escolaId = escolaResult.rows[0]?.id || 1;
       await query(`
         INSERT INTO colaboradores (nome, email, senha, matricula, cargo, escola_id)
-        VALUES ($1, $2, $3, $4, $5, (SELECT id FROM escolas LIMIT 1))
-      `, ['João Paulo', 'joaopaulo2009@gmail.com', '2026', '1001', 'Professor']);
+        VALUES ($1, $2, $3, $4, $5, $6)
+      `, ['João Paulo', 'joaopaulo2009@gmail.com', '2026', '1001', 'Professor', escolaId]);
       console.log('✅ Colaborador padrão criado');
     }
     
@@ -179,7 +181,7 @@ module.exports = async function handler(req, res) {
     return res.status(500).json({ 
       sucesso: false, 
       mensagem: 'DATABASE_URL não configurada. Adicione a variável de ambiente no Vercel.',
-      solucao: 'Acesse Vercel > Settings > Environment Variables e adicione DATABASE_URL com a string de conexão do NeonDB'
+      solucao: 'Acesse Vercel > Settings > Environment Variables e adicione DATABASE_URL'
     });
   }
 
@@ -191,8 +193,7 @@ module.exports = async function handler(req, res) {
     return res.status(500).json({ 
       sucesso: false, 
       mensagem: 'Erro ao conectar com banco de dados',
-      detalhes: error.message,
-      solucao: 'Verifique se a string de conexão está correta e se o banco está ativo'
+      detalhes: error.message
     });
   }
 
@@ -211,8 +212,7 @@ module.exports = async function handler(req, res) {
         estatisticas: {
           totalColaboradores: parseInt(totalColab.rows[0].count),
           registrosHoje: parseInt(registrosHoje.rows[0].count)
-        },
-        instrucoes: 'Use POST com ?acao=nome da ação'
+        }
       });
     } catch (error) {
       return res.status(500).json({ 
@@ -298,14 +298,12 @@ module.exports = async function handler(req, res) {
         return res.status(400).json({ sucesso: false, mensagem: 'Preencha todos os campos obrigatórios!' });
       }
       
-      // Buscar ID da escola
       const escolaResult = await query('SELECT id FROM escolas WHERE nome = $1', [escola]);
       if (escolaResult.rows.length === 0) {
         return res.status(400).json({ sucesso: false, mensagem: 'Escola não encontrada!' });
       }
       const escolaId = escolaResult.rows[0].id;
       
-      // Verificar duplicados
       const matriculaExistente = await query('SELECT * FROM colaboradores WHERE matricula = $1', [matricula]);
       if (matriculaExistente.rows.length > 0) {
         return res.status(400).json({ sucesso: false, mensagem: '❌ Matrícula já existe!' });
@@ -328,12 +326,10 @@ module.exports = async function handler(req, res) {
       const { id, dadosColab } = body;
       const { nome, email, senha, matricula, cargo, departamento, escola, cargaHoraria } = dadosColab;
       
-      // Buscar ID da escola
       const escolaResult = await query('SELECT id FROM escolas WHERE nome = $1', [escola]);
       let escolaId = null;
       if (escolaResult.rows.length > 0) escolaId = escolaResult.rows[0].id;
       
-      // Verificar duplicados (exceto próprio)
       const matriculaExistente = await query('SELECT * FROM colaboradores WHERE matricula = $1 AND id != $2', [matricula, id]);
       if (matriculaExistente.rows.length > 0) {
         return res.status(400).json({ sucesso: false, mensagem: '❌ Matrícula já existe para outro colaborador!' });

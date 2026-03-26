@@ -1,6 +1,7 @@
 // api/ponto.js
 // Sistema de Ponto Eletrônico - Backend com Vercel Blob Storage
 
+// ================= CONFIGURAÇÕES =================
 const { put, list, del } = require('@vercel/blob');
 
 // ================= NOMES DOS ARQUIVOS NO BLOB =================
@@ -15,6 +16,7 @@ const ARQUIVOS = {
 // ================= FUNÇÕES PARA LER/ESCREVER DADOS =================
 async function lerDados(nomeArquivo) {
   try {
+    // Listar todos os blobs
     const { blobs } = await list();
     const blob = blobs.find(b => b.pathname === nomeArquivo);
     
@@ -22,106 +24,112 @@ async function lerDados(nomeArquivo) {
       return [];
     }
     
+    // Buscar o conteúdo do blob
     const response = await fetch(blob.url);
+    if (!response.ok) {
+      return [];
+    }
+    
     const dados = await response.json();
     return dados;
   } catch (error) {
-    console.error(`Erro ao ler ${nomeArquivo}:`, error);
+    console.error(`Erro ao ler ${nomeArquivo}:`, error.message);
     return [];
   }
 }
 
 async function escreverDados(nomeArquivo, dados) {
   try {
-    const blob = await put(nomeArquivo, JSON.stringify(dados, null, 2), {
+    // Converter para JSON
+    const conteudo = JSON.stringify(dados, null, 2);
+    
+    // Salvar no blob
+    const blob = await put(nomeArquivo, conteudo, {
       access: 'public',
       contentType: 'application/json'
     });
+    
     return blob;
   } catch (error) {
-    console.error(`Erro ao escrever ${nomeArquivo}:`, error);
+    console.error(`Erro ao escrever ${nomeArquivo}:`, error.message);
     throw error;
   }
 }
 
+// ================= INICIALIZAR DADOS =================
 async function inicializarDados() {
-  // Inicializar Escolas
-  let escolas = await lerDados(ARQUIVOS.ESCOLAS);
-  if (escolas.length === 0) {
-    const escolasPadrao = [
-      { id: 1, nome: "CENTRO INFANTIL VEREADOR EVANDRO CARI", endereco: "", telefone: "" },
-      { id: 2, nome: "EMEIF AUDALIO MACIANO DA SILVA", endereco: "", telefone: "" },
-      { id: 3, nome: "EMEIF FREI DAMIAO", endereco: "", telefone: "" },
-      { id: 4, nome: "EMEIF SANTA ANA", endereco: "", telefone: "" },
-      { id: 5, nome: "EMEIF JOAO VIEIRA GOMES", endereco: "", telefone: "" },
-      { id: 6, nome: "EMEIF PEDRO FRANCISCO DAS CHAGAS", endereco: "", telefone: "" },
-      { id: 7, nome: "EMEIF MANOEL VIEIRA GADI", endereco: "", telefone: "" }
-    ];
-    await escreverDados(ARQUIVOS.ESCOLAS, escolasPadrao);
-    escolas = escolasPadrao;
+  try {
+    // Inicializar Escolas
+    let escolas = await lerDados(ARQUIVOS.ESCOLAS);
+    if (!escolas || escolas.length === 0) {
+      const escolasPadrao = [
+        { id: 1, nome: "CENTRO INFANTIL VEREADOR EVANDRO CARI", endereco: "", telefone: "" },
+        { id: 2, nome: "EMEIF AUDALIO MACIANO DA SILVA", endereco: "", telefone: "" },
+        { id: 3, nome: "EMEIF FREI DAMIAO", endereco: "", telefone: "" },
+        { id: 4, nome: "EMEIF SANTA ANA", endereco: "", telefone: "" },
+        { id: 5, nome: "EMEIF JOAO VIEIRA GOMES", endereco: "", telefone: "" },
+        { id: 6, nome: "EMEIF PEDRO FRANCISCO DAS CHAGAS", endereco: "", telefone: "" },
+        { id: 7, nome: "EMEIF MANOEL VIEIRA GADI", endereco: "", telefone: "" }
+      ];
+      await escreverDados(ARQUIVOS.ESCOLAS, escolasPadrao);
+      escolas = escolasPadrao;
+    }
+    
+    // Inicializar Colaboradores
+    let colaboradores = await lerDados(ARQUIVOS.COLABORADORES);
+    if (!colaboradores || colaboradores.length === 0) {
+      const colaboradoresPadrao = [
+        { 
+          id: 1, 
+          nome: "João Paulo", 
+          email: "joaopaulo2009@gmail.com", 
+          senha: "2026", 
+          matricula: "1001", 
+          cargo: "Professor", 
+          departamento: "Ensino", 
+          escolaId: 1, 
+          escola: "CENTRO INFANTIL VEREADOR EVANDRO CARI",
+          cargaHoraria: 160, 
+          hashFacial: null, 
+          status: "Ativo" 
+        }
+      ];
+      await escreverDados(ARQUIVOS.COLABORADORES, colaboradoresPadrao);
+      colaboradores = colaboradoresPadrao;
+    }
+    
+    // Inicializar Registros
+    let registros = await lerDados(ARQUIVOS.REGISTROS);
+    if (!registros) {
+      await escreverDados(ARQUIVOS.REGISTROS, []);
+    }
+    
+    // Inicializar Trocas
+    let trocas = await lerDados(ARQUIVOS.TROCAS);
+    if (!trocas) {
+      await escreverDados(ARQUIVOS.TROCAS, []);
+    }
+    
+    // Inicializar Usuários TI
+    let usuariosTI = await lerDados(ARQUIVOS.USUARIOS_TI);
+    if (!usuariosTI || usuariosTI.length === 0) {
+      const usuariosPadrao = [
+        { id: 1, usuario: "admin", senha: "ti@2024", tipo: "Master" }
+      ];
+      await escreverDados(ARQUIVOS.USUARIOS_TI, usuariosPadrao);
+    }
+    
+    console.log('✅ Dados inicializados com sucesso!');
+    return true;
+  } catch (error) {
+    console.error('❌ Erro ao inicializar dados:', error.message);
+    return false;
   }
-  
-  // Inicializar Colaboradores
-  let colaboradores = await lerDados(ARQUIVOS.COLABORADORES);
-  if (colaboradores.length === 0) {
-    const colaboradoresPadrao = [
-      { 
-        id: 1, 
-        nome: "João Paulo", 
-        email: "joaopaulo2009@gmail.com", 
-        senha: "2026", 
-        matricula: "1001", 
-        cargo: "Professor", 
-        departamento: "Ensino", 
-        escolaId: 1, 
-        escola: "CENTRO INFANTIL VEREADOR EVANDRO CARI",
-        cargaHoraria: 160, 
-        hashFacial: null, 
-        status: "Ativo" 
-      }
-    ];
-    await escreverDados(ARQUIVOS.COLABORADORES, colaboradoresPadrao);
-    colaboradores = colaboradoresPadrao;
-  }
-  
-  // Inicializar Registros
-  let registros = await lerDados(ARQUIVOS.REGISTROS);
-  if (registros.length === 0) {
-    await escreverDados(ARQUIVOS.REGISTROS, []);
-  }
-  
-  // Inicializar Trocas
-  let trocas = await lerDados(ARQUIVOS.TROCAS);
-  if (trocas.length === 0) {
-    await escreverDados(ARQUIVOS.TROCAS, []);
-  }
-  
-  // Inicializar Usuários TI
-  let usuariosTI = await lerDados(ARQUIVOS.USUARIOS_TI);
-  if (usuariosTI.length === 0) {
-    const usuariosPadrao = [
-      { id: 1, usuario: "admin", senha: "ti@2024", tipo: "Master" }
-    ];
-    await escreverDados(ARQUIVOS.USUARIOS_TI, usuariosPadrao);
-  }
-  
-  console.log('✅ Dados inicializados com sucesso!');
 }
 
 // ================= FUNÇÕES CORS =================
-function setCorsHeaders(res, origin) {
-  const allowedOrigins = [
-    'https://sistema-ponto-seven.vercel.app',
-    'http://localhost:3000',
-    'https://ponto-app.vercel.app'
-  ];
-  
-  if (origin && allowedOrigins.includes(origin)) {
-    res.setHeader('Access-Control-Allow-Origin', origin);
-  } else {
-    res.setHeader('Access-Control-Allow-Origin', '*');
-  }
-  
+function setCorsHeaders(res) {
+  res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
   res.setHeader('Access-Control-Max-Age', '86400');
@@ -130,20 +138,41 @@ function setCorsHeaders(res, origin) {
 // ================= HANDLER PRINCIPAL =================
 module.exports = async function handler(req, res) {
   // Configurar CORS
-  setCorsHeaders(res, req.headers.origin);
+  setCorsHeaders(res);
 
   // Responder preflight (OPTIONS)
   if (req.method === 'OPTIONS') {
     return res.status(200).end();
   }
 
+  // Teste simples para verificar se a função está funcionando
+  if (req.method === 'GET') {
+    return res.status(200).json({ 
+      sucesso: true, 
+      mensagem: 'API do Ponto Eletrônico está funcionando!',
+      endpoints: [
+        'POST ?acao=estatisticas',
+        'POST ?acao=listarEscolas',
+        'POST ?acao=listarColaboradores',
+        'POST ?acao=adicionarColaborador',
+        'POST ?acao=editarColaborador',
+        'POST ?acao=excluirColaborador',
+        'POST ?acao=listarRegistros',
+        'POST ?acao=registrarPonto',
+        'POST ?acao=loginColaborador',
+        'POST ?acao=loginTI',
+        'POST ?acao=listarUsuariosTI'
+      ]
+    });
+  }
+
+  // Apenas POST é permitido para ações
+  if (req.method !== 'POST') {
+    return res.status(405).json({ sucesso: false, mensagem: 'Método não permitido. Use POST ou GET.' });
+  }
+
   // Inicializar dados
   await inicializarDados();
-
-  // Apenas POST é permitido para este endpoint
-  if (req.method !== 'POST') {
-    return res.status(405).json({ sucesso: false, mensagem: 'Método não permitido. Use POST.' });
-  }
 
   const { acao } = req.query;
   const dados = req.body;
@@ -167,7 +196,7 @@ module.exports = async function handler(req, res) {
       const novaEscola = { id: novoId, nome, endereco: endereco || '', telefone: telefone || '' };
       escolas.push(novaEscola);
       await escreverDados(ARQUIVOS.ESCOLAS, escolas);
-      return res.status(200).json({ sucesso: true, mensagem: 'Escola adicionada!', dados: novaEscola });
+      return res.status(200).json({ sucesso: true, mensagem: '✅ Escola adicionada!', dados: novaEscola });
     }
 
     if (acao === 'editarEscola') {
@@ -179,15 +208,15 @@ module.exports = async function handler(req, res) {
       }
       escolas[index] = { ...escolas[index], nome, endereco, telefone };
       await escreverDados(ARQUIVOS.ESCOLAS, escolas);
-      return res.status(200).json({ sucesso: true, mensagem: 'Escola editada!' });
+      return res.status(200).json({ sucesso: true, mensagem: '✅ Escola editada!' });
     }
 
     if (acao === 'excluirEscola') {
       const { id } = dados;
-      const escolas = await lerDados(ARQUIVOS.ESCOLAS);
-      const novasEscolas = escolas.filter(e => e.id != id);
-      await escreverDados(ARQUIVOS.ESCOLAS, novasEscolas);
-      return res.status(200).json({ sucesso: true, mensagem: 'Escola excluída!' });
+      let escolas = await lerDados(ARQUIVOS.ESCOLAS);
+      escolas = escolas.filter(e => e.id != id);
+      await escreverDados(ARQUIVOS.ESCOLAS, escolas);
+      return res.status(200).json({ sucesso: true, mensagem: '✅ Escola excluída!' });
     }
 
     // ================= CRUD COLABORADORES =================
@@ -200,24 +229,20 @@ module.exports = async function handler(req, res) {
       const { nome, email, senha, matricula, cargo, departamento, escola, cargaHoraria } = dados;
       
       if (!nome || !email || !senha || !matricula || !escola) {
-        return res.status(400).json({ sucesso: false, mensagem: 'Preencha todos os campos!' });
+        return res.status(400).json({ sucesso: false, mensagem: 'Preencha todos os campos obrigatórios!' });
       }
       
       const colaboradores = await lerDados(ARQUIVOS.COLABORADORES);
       
       // Verificar matrícula duplicada
       if (colaboradores.some(c => c.matricula === matricula)) {
-        return res.status(400).json({ sucesso: false, mensagem: 'Matrícula já existe!' });
+        return res.status(400).json({ sucesso: false, mensagem: '❌ Matrícula já existe!' });
       }
       
       // Verificar email duplicado
       if (colaboradores.some(c => c.email === email)) {
-        return res.status(400).json({ sucesso: false, mensagem: 'Email já existe!' });
+        return res.status(400).json({ sucesso: false, mensagem: '❌ Email já existe!' });
       }
-      
-      const escolas = await lerDados(ARQUIVOS.ESCOLAS);
-      const escolaObj = escolas.find(e => e.nome === escola);
-      const escolaId = escolaObj ? escolaObj.id : null;
       
       const novoId = Date.now();
       const novoColaborador = {
@@ -228,8 +253,7 @@ module.exports = async function handler(req, res) {
         matricula,
         cargo: cargo || '',
         departamento: departamento || '',
-        escolaId,
-        escola,
+        escola: escola,
         cargaHoraria: cargaHoraria || 160,
         hashFacial: null,
         status: 'Ativo'
@@ -253,17 +277,13 @@ module.exports = async function handler(req, res) {
       
       // Verificar matrícula duplicada (exceto o próprio)
       if (colaboradores.some(c => c.matricula === matricula && c.id != id)) {
-        return res.status(400).json({ sucesso: false, mensagem: 'Matrícula já existe para outro colaborador!' });
+        return res.status(400).json({ sucesso: false, mensagem: '❌ Matrícula já existe para outro colaborador!' });
       }
       
       // Verificar email duplicado (exceto o próprio)
       if (colaboradores.some(c => c.email === email && c.id != id)) {
-        return res.status(400).json({ sucesso: false, mensagem: 'Email já existe para outro colaborador!' });
+        return res.status(400).json({ sucesso: false, mensagem: '❌ Email já existe para outro colaborador!' });
       }
-      
-      const escolas = await lerDados(ARQUIVOS.ESCOLAS);
-      const escolaObj = escolas.find(e => e.nome === escola);
-      const escolaId = escolaObj ? escolaObj.id : null;
       
       colaboradores[index] = {
         ...colaboradores[index],
@@ -273,7 +293,6 @@ module.exports = async function handler(req, res) {
         matricula,
         cargo: cargo || '',
         departamento: departamento || '',
-        escolaId,
         escola,
         cargaHoraria: cargaHoraria || 160
       };
@@ -296,7 +315,7 @@ module.exports = async function handler(req, res) {
       const colaborador = colaboradores.find(c => c.email === email && c.senha === senha && c.status === 'Ativo');
       
       if (!colaborador) {
-        return res.status(401).json({ sucesso: false, mensagem: 'Email ou senha incorretos!' });
+        return res.status(401).json({ sucesso: false, mensagem: '❌ Email ou senha incorretos!' });
       }
       
       return res.status(200).json({ sucesso: true, dados: colaborador });
@@ -439,7 +458,7 @@ module.exports = async function handler(req, res) {
 
     if (acao === 'adicionarUsuarioTI') {
       const { usuario, senha, tipo } = dados;
-      const usuariosTI = await lerDados(ARQUIVOS.USUARIOS_TI);
+      let usuariosTI = await lerDados(ARQUIVOS.USUARIOS_TI);
       if (usuariosTI.some(u => u.usuario === usuario)) {
         return res.status(400).json({ sucesso: false, mensagem: 'Usuário já existe!' });
       }
@@ -491,12 +510,26 @@ module.exports = async function handler(req, res) {
       const colaboradores = await lerDados(ARQUIVOS.COLABORADORES);
       const folhas = colaboradores.map(c => {
         const registrosColab = registrosFiltrados.filter(r => r.matricula === c.matricula);
+        let totalHoras = 0;
+        
+        registrosColab.forEach(r => {
+          if (r.entrada && r.saida) {
+            const entradaHora = parseInt(r.entrada.split(':')[0]);
+            const entradaMin = parseInt(r.entrada.split(':')[1]);
+            const saidaHora = parseInt(r.saida.split(':')[0]);
+            const saidaMin = parseInt(r.saida.split(':')[1]);
+            const horas = (saidaHora - entradaHora) + (saidaMin - entradaMin) / 60;
+            totalHoras += horas;
+          }
+        });
+        
         return {
           colaborador: c.nome,
           matricula: c.matricula,
           escola: c.escola,
           cargo: c.cargo,
           cargaHoraria: c.cargaHoraria,
+          totalHoras: totalHoras.toFixed(2),
           registros: registrosColab
         };
       }).filter(f => f.registros.length > 0);

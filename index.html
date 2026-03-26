@@ -5,13 +5,13 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <meta name="apple-mobile-web-app-title" content="Ponto App">
+    <meta name="apple-mobile-web-app-title" content="Sistema de Ponto Online">
     <meta name="theme-color" content="#667eea">
     
     <link rel="manifest" href="manifest.json">
     <link rel="apple-touch-icon" href="/assets/icons/icon-152.png">
     
-    <title>📱 Ponto App - Sistema de Ponto Eletrônico</title>
+    <title>📱 Sistema de Ponto Online</title>
     
     <style>
         * {
@@ -27,6 +27,7 @@
             padding: 12px;
             padding-top: env(safe-area-inset-top);
             padding-bottom: env(safe-area-inset-bottom);
+            position: relative;
         }
         
         /* Telas */
@@ -445,11 +446,22 @@
             cursor: pointer;
         }
         
-        .footer {
+        /* Footer fixo */
+        .footer-fixo {
             text-align: center;
-            margin-top: 20px;
-            color: #999;
+            padding: 15px;
+            background: transparent;
+            color: rgba(255,255,255,0.9);
             font-size: 0.8rem;
+            margin-top: auto;
+        }
+        
+        .footer-fixo p {
+            background: rgba(0,0,0,0.3);
+            display: inline-block;
+            padding: 8px 20px;
+            border-radius: 30px;
+            backdrop-filter: blur(5px);
         }
     </style>
 </head>
@@ -466,8 +478,8 @@
     <div id="screenMain" class="main-menu">
         <div class="logo-area">
             <div class="logo">📱</div>
-            <h1>Ponto App</h1>
-            <div class="developer">João Paulo da Silva de Farias</div>
+            <h1>Sistema de Ponto Online</h1>
+            <div class="developer">Registro de Ponto por Reconhecimento Facial</div>
         </div>
         
         <button class="btn-facial" onclick="navegarPara('facial')">
@@ -475,21 +487,6 @@
         </button>
         
         <div class="menu-grid">
-            <button class="menu-item" onclick="navegarPara('colaboradores')">
-                <span>👥</span>
-                Colaboradores
-            </button>
-            
-            <button class="menu-item" onclick="navegarPara('registros')">
-                <span>📊</span>
-                Registros
-            </button>
-            
-            <button class="menu-item" onclick="navegarPara('troca')">
-                <span>🔄</span>
-                Troca Turnos
-            </button>
-            
             <button class="menu-item" onclick="navegarPara('ti')">
                 <span>👨‍💻</span>
                 Área T.I
@@ -513,10 +510,6 @@
         <div class="install-banner" id="installBanner">
             <span>📲 Instalar app</span>
             <button onclick="installPWA()">Instalar</button>
-        </div>
-        
-        <div class="footer">
-            Versão 5.0 • 100% Funcional • Vercel API
         </div>
     </div>
 
@@ -552,165 +545,6 @@
         </div>
     </div>
 
-    <!-- Tela: Colaboradores -->
-    <div id="screenColaboradores" class="screen">
-        <div class="header">
-            <button class="btn-back" onclick="voltarParaMenu()">←</button>
-            <div class="header-title">👥 Colaboradores</div>
-            <button class="header-action" onclick="mostrarFormColaborador()">➕</button>
-        </div>
-        <div class="content" id="colaboradoresList">
-            <div class="status status-info">Carregando colaboradores...</div>
-        </div>
-    </div>
-
-    <!-- Tela: Formulário Colaborador -->
-    <div id="screenFormColaborador" class="screen">
-        <div class="header">
-            <button class="btn-back" onclick="voltarParaColaboradores()">←</button>
-            <div class="header-title" id="formColabTitle">➕ Novo Colaborador</div>
-        </div>
-        <div class="content">
-            <div class="form-group">
-                <label>Nome completo *</label>
-                <input type="text" id="colabNome" placeholder="Digite o nome">
-            </div>
-            
-            <div class="form-group">
-                <label>Matrícula *</label>
-                <input type="text" id="colabMatricula" placeholder="Digite a matrícula">
-            </div>
-            
-            <div class="form-group">
-                <label>Cargo</label>
-                <input type="text" id="colabCargo" placeholder="Digite o cargo">
-            </div>
-            
-            <div class="form-group">
-                <label>Departamento</label>
-                <input type="text" id="colabDepartamento" placeholder="Digite o departamento">
-            </div>
-            
-            <div class="form-group">
-                <label>Escola</label>
-                <input type="text" id="colabEscola" placeholder="Nome da escola">
-            </div>
-            
-            <div class="form-group">
-                <label>Carga Horária Mensal (horas)</label>
-                <input type="number" id="colabCarga" value="160">
-            </div>
-            
-            <button class="btn-primary" onclick="salvarColaborador()">✅ Salvar</button>
-            <button class="btn-danger" onclick="voltarParaColaboradores()">❌ Cancelar</button>
-        </div>
-    </div>
-
-    <!-- Tela: Registros de Ponto -->
-    <div id="screenRegistros" class="screen">
-        <div class="header">
-            <button class="btn-back" onclick="voltarParaMenu()">←</button>
-            <div class="header-title">📊 Registros de Ponto</div>
-            <button class="header-action" onclick="mostrarFormRegistro()">➕</button>
-        </div>
-        <div class="content" id="registrosList">
-            <div class="status status-info">Carregando registros...</div>
-        </div>
-    </div>
-
-    <!-- Tela: Formulário Registro Manual -->
-    <div id="screenFormRegistro" class="screen">
-        <div class="header">
-            <button class="btn-back" onclick="voltarParaRegistros()">←</button>
-            <div class="header-title">📝 Registro Manual</div>
-        </div>
-        <div class="content">
-            <div class="form-group">
-                <label>Matrícula *</label>
-                <input type="text" id="regMatricula" placeholder="Digite a matrícula">
-            </div>
-            
-            <div class="form-group">
-                <label>Tipo</label>
-                <select id="regTipo">
-                    <option value="entrada">🚪 Entrada</option>
-                    <option value="saida">🏃 Saída</option>
-                </select>
-            </div>
-            
-            <div class="form-group">
-                <label>Data</label>
-                <input type="date" id="regData">
-            </div>
-            
-            <div class="form-group">
-                <label>Hora</label>
-                <input type="time" id="regHora">
-            </div>
-            
-            <div class="form-group">
-                <label>Observação</label>
-                <textarea id="regObs" rows="3" placeholder="Opcional"></textarea>
-            </div>
-            
-            <button class="btn-primary btn-success" onclick="salvarRegistro()">✅ Salvar Registro</button>
-            <button class="btn-danger" onclick="voltarParaRegistros()">❌ Cancelar</button>
-        </div>
-    </div>
-
-    <!-- Tela: Troca de Turnos -->
-    <div id="screenTroca" class="screen">
-        <div class="header">
-            <button class="btn-back" onclick="voltarParaMenu()">←</button>
-            <div class="header-title">🔄 Troca de Turnos</div>
-            <button class="header-action" onclick="mostrarFormTroca()">➕</button>
-        </div>
-        <div class="content" id="trocasList">
-            <div class="status status-info">Carregando trocas...</div>
-        </div>
-    </div>
-
-    <!-- Tela: Formulário Troca de Turnos -->
-    <div id="screenFormTroca" class="screen">
-        <div class="header">
-            <button class="btn-back" onclick="voltarParaTrocas()">←</button>
-            <div class="header-title">🔄 Nova Troca</div>
-        </div>
-        <div class="content">
-            <div class="form-group">
-                <label>Colaborador Substituído *</label>
-                <select id="trocaSaida">
-                    <option value="">Selecione</option>
-                </select>
-            </div>
-            
-            <div class="form-group">
-                <label>Colaborador Substituto *</label>
-                <select id="trocaEntrada">
-                    <option value="">Selecione</option>
-                </select>
-            </div>
-            
-            <div class="form-group">
-                <label>Data da Troca</label>
-                <input type="date" id="trocaData">
-            </div>
-            
-            <div class="form-group">
-                <label>Motivo *</label>
-                <input type="text" id="trocaMotivo" placeholder="Digite o motivo">
-            </div>
-            
-            <div class="form-group">
-                <label>Observação</label>
-                <textarea id="trocaObs" rows="3" placeholder="Opcional"></textarea>
-            </div>
-            
-            <button class="btn-primary btn-warning" onclick="salvarTroca()">✅ Registrar Troca</button>
-            <button class="btn-danger" onclick="voltarParaTrocas()">❌ Cancelar</button>
-        </div>
-    </div>
-
     <!-- Tela: Área T.I -->
     <div id="screenTI" class="screen">
         <div class="header">
@@ -737,9 +571,36 @@
             <div id="tiPainel" style="display: none; margin-top: 30px;">
                 <h3 style="margin-bottom: 15px;">📋 Painel Administrativo</h3>
                 
+                <!-- Card: Colaboradores -->
+                <div class="card">
+                    <div class="card-title">👥 Colaboradores</div>
+                    <div id="colaboradoresList" style="max-height: 300px; overflow-y: auto;">
+                        <div class="status status-info">Faça login para ver os colaboradores</div>
+                    </div>
+                    <button class="btn-small btn-primary" onclick="mostrarFormColaborador()" style="margin-top: 10px;">➕ Adicionar Colaborador</button>
+                </div>
+                
+                <!-- Card: Registros de Ponto -->
+                <div class="card">
+                    <div class="card-title">📊 Registros de Ponto</div>
+                    <div id="registrosList" style="max-height: 300px; overflow-y: auto;">
+                        <div class="status status-info">Faça login para ver os registros</div>
+                    </div>
+                    <button class="btn-small btn-primary" onclick="mostrarFormRegistro()" style="margin-top: 10px;">➕ Registrar Ponto Manual</button>
+                </div>
+                
+                <!-- Card: Troca de Turnos -->
+                <div class="card">
+                    <div class="card-title">🔄 Troca de Turnos</div>
+                    <div id="trocasList" style="max-height: 300px; overflow-y: auto;">
+                        <div class="status status-info">Faça login para ver as trocas</div>
+                    </div>
+                    <button class="btn-small btn-primary" onclick="mostrarFormTroca()" style="margin-top: 10px;">➕ Nova Troca</button>
+                </div>
+                
                 <!-- Card: Folha de Ponto -->
                 <div class="card">
-                    <div class="card-title">📊 Folha de Ponto</div>
+                    <div class="card-title">📄 Folha de Ponto</div>
                     <div class="form-group">
                         <label>Mês</label>
                         <select id="tiMes">
@@ -784,7 +645,7 @@
                         🔌 Testar Conexão
                     </button>
                     <div id="vercelProjectsList" style="margin: 15px 0;">
-                        <div class="status status-info">Carregando projetos...</div>
+                        <div class="status status-info">Clique em Testar Conexão</div>
                     </div>
                     <div id="vercelDeploymentsSection" style="display: none;">
                         <h4 style="margin: 15px 0 10px;">📦 Deployments</h4>
@@ -795,6 +656,129 @@
                     </div>
                 </div>
             </div>
+        </div>
+    </div>
+
+    <!-- Tela: Formulário Colaborador -->
+    <div id="screenFormColaborador" class="screen">
+        <div class="header">
+            <button class="btn-back" onclick="voltarParaTI()">←</button>
+            <div class="header-title" id="formColabTitle">➕ Novo Colaborador</div>
+        </div>
+        <div class="content">
+            <div class="form-group">
+                <label>Nome completo *</label>
+                <input type="text" id="colabNome" placeholder="Digite o nome">
+            </div>
+            
+            <div class="form-group">
+                <label>Matrícula *</label>
+                <input type="text" id="colabMatricula" placeholder="Digite a matrícula">
+            </div>
+            
+            <div class="form-group">
+                <label>Cargo</label>
+                <input type="text" id="colabCargo" placeholder="Digite o cargo">
+            </div>
+            
+            <div class="form-group">
+                <label>Departamento</label>
+                <input type="text" id="colabDepartamento" placeholder="Digite o departamento">
+            </div>
+            
+            <div class="form-group">
+                <label>Escola</label>
+                <input type="text" id="colabEscola" placeholder="Nome da escola">
+            </div>
+            
+            <div class="form-group">
+                <label>Carga Horária Mensal (horas)</label>
+                <input type="number" id="colabCarga" value="160">
+            </div>
+            
+            <button class="btn-primary" onclick="salvarColaborador()">✅ Salvar</button>
+            <button class="btn-danger" onclick="voltarParaTI()">❌ Cancelar</button>
+        </div>
+    </div>
+
+    <!-- Tela: Formulário Registro Manual -->
+    <div id="screenFormRegistro" class="screen">
+        <div class="header">
+            <button class="btn-back" onclick="voltarParaTI()">←</button>
+            <div class="header-title">📝 Registro Manual</div>
+        </div>
+        <div class="content">
+            <div class="form-group">
+                <label>Matrícula *</label>
+                <input type="text" id="regMatricula" placeholder="Digite a matrícula">
+            </div>
+            
+            <div class="form-group">
+                <label>Tipo</label>
+                <select id="regTipo">
+                    <option value="entrada">🚪 Entrada</option>
+                    <option value="saida">🏃 Saída</option>
+                </select>
+            </div>
+            
+            <div class="form-group">
+                <label>Data</label>
+                <input type="date" id="regData">
+            </div>
+            
+            <div class="form-group">
+                <label>Hora</label>
+                <input type="time" id="regHora">
+            </div>
+            
+            <div class="form-group">
+                <label>Observação</label>
+                <textarea id="regObs" rows="3" placeholder="Opcional"></textarea>
+            </div>
+            
+            <button class="btn-primary btn-success" onclick="salvarRegistro()">✅ Salvar Registro</button>
+            <button class="btn-danger" onclick="voltarParaTI()">❌ Cancelar</button>
+        </div>
+    </div>
+
+    <!-- Tela: Formulário Troca de Turnos -->
+    <div id="screenFormTroca" class="screen">
+        <div class="header">
+            <button class="btn-back" onclick="voltarParaTI()">←</button>
+            <div class="header-title">🔄 Nova Troca</div>
+        </div>
+        <div class="content">
+            <div class="form-group">
+                <label>Colaborador Substituído *</label>
+                <select id="trocaSaida">
+                    <option value="">Selecione</option>
+                </select>
+            </div>
+            
+            <div class="form-group">
+                <label>Colaborador Substituto *</label>
+                <select id="trocaEntrada">
+                    <option value="">Selecione</option>
+                </select>
+            </div>
+            
+            <div class="form-group">
+                <label>Data da Troca</label>
+                <input type="date" id="trocaData">
+            </div>
+            
+            <div class="form-group">
+                <label>Motivo *</label>
+                <input type="text" id="trocaMotivo" placeholder="Digite o motivo">
+            </div>
+            
+            <div class="form-group">
+                <label>Observação</label>
+                <textarea id="trocaObs" rows="3" placeholder="Opcional"></textarea>
+            </div>
+            
+            <button class="btn-primary btn-warning" onclick="salvarTroca()">✅ Registrar Troca</button>
+            <button class="btn-danger" onclick="voltarParaTI()">❌ Cancelar</button>
         </div>
     </div>
 
@@ -826,6 +810,11 @@
             <button class="btn-primary" onclick="salvarUsuarioTI()">✅ Salvar</button>
             <button class="btn-danger" onclick="voltarParaTI()">❌ Cancelar</button>
         </div>
+    </div>
+
+    <!-- Footer fixo -->
+    <div class="footer-fixo">
+        <p>Desenvolvido por AlfaTech - v5.0</p>
     </div>
 
     <script>
@@ -1008,15 +997,6 @@
             if (tela === 'facial') {
                 document.getElementById('screenFacial').classList.add('active');
                 iniciarCamera();
-            } else if (tela === 'colaboradores') {
-                document.getElementById('screenColaboradores').classList.add('active');
-                listarColaboradores();
-            } else if (tela === 'registros') {
-                document.getElementById('screenRegistros').classList.add('active');
-                listarRegistros();
-            } else if (tela === 'troca') {
-                document.getElementById('screenTroca').classList.add('active');
-                listarTrocas();
             } else if (tela === 'ti') {
                 document.getElementById('screenTI').classList.add('active');
                 document.getElementById('tiPainel').style.display = 'none';
@@ -1035,28 +1015,16 @@
             }
         }
 
-        function voltarParaColaboradores() {
-            document.getElementById('screenFormColaborador').classList.remove('active');
-            document.getElementById('screenColaboradores').classList.add('active');
-            listarColaboradores();
-        }
-
-        function voltarParaRegistros() {
-            document.getElementById('screenFormRegistro').classList.remove('active');
-            document.getElementById('screenRegistros').classList.add('active');
-            listarRegistros();
-        }
-
-        function voltarParaTrocas() {
-            document.getElementById('screenFormTroca').classList.remove('active');
-            document.getElementById('screenTroca').classList.add('active');
-            listarTrocas();
-        }
-
         function voltarParaTI() {
+            document.getElementById('screenFormColaborador').classList.remove('active');
+            document.getElementById('screenFormRegistro').classList.remove('active');
+            document.getElementById('screenFormTroca').classList.remove('active');
             document.getElementById('screenFormUsuario').classList.remove('active');
             document.getElementById('screenTI').classList.add('active');
             if (logadoTI) {
+                listarColaboradores();
+                listarRegistros();
+                listarTrocas();
                 listarUsuariosTI();
             }
         }
@@ -1099,7 +1067,6 @@
                     document.getElementById('facialStatus').innerHTML = '✅ Biometria reconhecida! Ponto registrado!';
                     document.getElementById('facialStatus').className = 'status status-success';
                     
-                    const agora = new Date();
                     const registro = {
                         matricula: "1001",
                         tipo: "entrada",
@@ -1151,7 +1118,11 @@
 
         // ================= COLABORADORES (CRUD) =================
         function mostrarFormColaborador() {
-            document.getElementById('screenColaboradores').classList.remove('active');
+            if (!logadoTI) {
+                alert('Faça login na Área T.I primeiro!');
+                return;
+            }
+            document.getElementById('screenTI').classList.remove('active');
             document.getElementById('screenFormColaborador').classList.add('active');
             document.getElementById('formColabTitle').innerHTML = '➕ Novo Colaborador';
             document.getElementById('colabNome').value = '';
@@ -1167,7 +1138,7 @@
             const colab = colaboradores.find(c => c.id == id);
             if (!colab) return;
             
-            document.getElementById('screenColaboradores').classList.remove('active');
+            document.getElementById('screenTI').classList.remove('active');
             document.getElementById('screenFormColaborador').classList.add('active');
             document.getElementById('formColabTitle').innerHTML = '✏️ Editar Colaborador';
             document.getElementById('colabNome').value = colab.nome || '';
@@ -1207,7 +1178,7 @@
             
             await listarColaboradores();
             await carregarEstatisticas();
-            voltarParaColaboradores();
+            voltarParaTI();
         }
 
         async function excluirColaborador(id) {
@@ -1221,7 +1192,11 @@
 
         // ================= REGISTROS =================
         function mostrarFormRegistro() {
-            document.getElementById('screenRegistros').classList.remove('active');
+            if (!logadoTI) {
+                alert('Faça login na Área T.I primeiro!');
+                return;
+            }
+            document.getElementById('screenTI').classList.remove('active');
             document.getElementById('screenFormRegistro').classList.add('active');
             
             const hoje = new Date().toISOString().split('T')[0];
@@ -1264,13 +1239,17 @@
             if (resultado.sucesso) {
                 await listarRegistros();
                 await carregarEstatisticas();
-                voltarParaRegistros();
+                voltarParaTI();
             }
         }
 
         // ================= TROCAS =================
         function mostrarFormTroca() {
-            document.getElementById('screenTroca').classList.remove('active');
+            if (!logadoTI) {
+                alert('Faça login na Área T.I primeiro!');
+                return;
+            }
+            document.getElementById('screenTI').classList.remove('active');
             document.getElementById('screenFormTroca').classList.add('active');
             
             const saida = document.getElementById('trocaSaida');
@@ -1331,7 +1310,7 @@
             
             if (resultado.sucesso) {
                 await listarTrocas();
-                voltarParaTrocas();
+                voltarParaTI();
             }
         }
 
@@ -1347,6 +1326,9 @@
                 document.getElementById('tiStatus').className = 'status status-success';
                 document.getElementById('tiPainel').style.display = 'block';
                 logadoTI = true;
+                await listarColaboradores();
+                await listarRegistros();
+                await listarTrocas();
                 await listarUsuariosTI();
                 await renderizarProjetosVercel();
             } else {
@@ -1363,6 +1345,10 @@
         }
 
         function mostrarFormNovoUsuario() {
+            if (!logadoTI) {
+                alert('Faça login na Área T.I primeiro!');
+                return;
+            }
             document.getElementById('screenTI').classList.remove('active');
             document.getElementById('screenFormUsuario').classList.add('active');
             document.getElementById('userUsuario').value = '';
@@ -1405,6 +1391,10 @@
         }
 
         function fazerBackup() {
+            if (!logadoTI) {
+                alert('Faça login na Área T.I primeiro!');
+                return;
+            }
             const backup = {
                 colaboradores,
                 registros: registrosPonto,
@@ -1422,6 +1412,10 @@
         }
 
         async function gerarFolhaPonto() {
+            if (!logadoTI) {
+                alert('Faça login na Área T.I primeiro!');
+                return;
+            }
             const mes = document.getElementById('tiMes').value;
             const ano = document.getElementById('tiAno').value;
             
@@ -1473,7 +1467,7 @@
                 html += `
                     <h3>${escapeHtml(f.colaborador)} - ${escapeHtml(f.escola)}</h3>
                     <p>Carga Horária: ${f.cargaHoraria}h | Total: ${totalHoras.toFixed(2)}h</p>
-                    <table>
+                     <table>
                         <thead><tr><th>Data</th><th>Entrada</th><th>Saída</th></tr></thead>
                         <tbody>
                 `;
@@ -1494,6 +1488,10 @@
 
         // ================= FUNÇÕES DA API VERCEl =================
         async function testarConexaoVercel() {
+            if (!logadoTI) {
+                alert('Faça login na Área T.I primeiro!');
+                return;
+            }
             const resultado = await chamarAPI('listarProjetos');
             if (resultado.sucesso) {
                 alert('✅ Conexão com API Vercel estabelecida!\nProjetos encontrados: ' + (resultado.dados?.length || 0));
@@ -1630,7 +1628,6 @@
         async function inicializarApp() {
             console.log('🚀 Inicializando app...');
             
-            // Configurar datas padrão
             const hoje = new Date().toISOString().split('T')[0];
             if (document.getElementById('regData')) document.getElementById('regData').value = hoje;
             if (document.getElementById('trocaData')) document.getElementById('trocaData').value = hoje;
@@ -1640,9 +1637,6 @@
             if (document.getElementById('regHora')) document.getElementById('regHora').value = hora;
             
             await carregarEstatisticas();
-            await listarColaboradores();
-            await listarRegistros();
-            await listarTrocas();
             
             console.log('✅ App inicializado!');
         }

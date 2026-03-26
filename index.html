@@ -671,16 +671,11 @@
             { id: 7, nome: "EMEIF MANOEL VIEIRA GADI", endereco: "", telefone: "" }
         ];
         
-        let usuarios = [
-            { email: "joaopaulo2009@gmail.com", senha: "2026", matricula: "1001", nome: "João Paulo", escolaId: 1, hash: null }
-        ];
-        
+        // ================= VARIÁVEIS DE ESTADO =================
         let colaboradores = [];
         let registrosPonto = [];
         let trocasTurno = [];
         let usuariosTI = [{ usuario: "admin", senha: "ti@2024", tipo: "Master" }];
-        
-        // ================= VARIÁVEIS DE ESTADO =================
         let stream = null;
         let logadoTI = false;
         let secaoAtualTI = '';
@@ -731,6 +726,7 @@
             if (r.sucesso) { 
                 colaboradores = r.dados || []; 
                 atualizarSelects(); 
+                renderizarColaboradoresTI();
             } 
         }
         
@@ -774,7 +770,7 @@
             }
             let html = '';
             colaboradores.forEach(col => { 
-                html += `<div class="card"><div class="card-title">${escapeHtml(col.nome)}</div><div class="card-subtitle">${escapeHtml(col.email || '-')} • Mat: ${escapeHtml(col.matricula)}</div><div class="card-detail">${escapeHtml(col.escola || '-')} • ${col.cargaHoraria || 160}h</div><div class="card-actions"><button class="btn-small btn-primary" onclick="editarColaborador(${col.id})">✏️</button><button class="btn-small btn-danger" onclick="excluirColaborador(${col.id})">❌</button></div></div>`; 
+                html += `<div class="card"><div class="card-title">${escapeHtml(col.nome)}</div><div class="card-subtitle">Email: ${escapeHtml(col.email || '-')} • Mat: ${escapeHtml(col.matricula)}</div><div class="card-detail">${escapeHtml(col.escola || '-')} • ${col.cargaHoraria || 160}h</div><div class="card-actions"><button class="btn-small btn-primary" onclick="editarColaborador(${col.id})">✏️</button><button class="btn-small btn-danger" onclick="excluirColaborador(${col.id})">❌</button></div></div>`; 
             });
             container.innerHTML = html;
         }
@@ -854,45 +850,39 @@
             document.getElementById('screenLogin').classList.add('active'); 
         }
         
-        function fazerLogin() {
+        async function fazerLogin() {
             const email = document.getElementById('loginEmail').value.trim();
             const senha = document.getElementById('loginSenha').value.trim();
             if (!email || !senha) { 
                 alert('Preencha email e senha!'); 
                 return; 
             }
-            const usuario = usuarios.find(u => u.email === email && u.senha === senha);
-            if (!usuario) { 
+            
+            // Buscar colaborador pelo email na API
+            await carregarColaboradores();
+            const colaborador = colaboradores.find(c => c.email === email && c.senha === senha);
+            
+            if (!colaborador) { 
                 alert('❌ Email ou senha incorretos!'); 
                 return; 
             }
-            usuarioLogado = usuario;
-            const escolasUsuario = escolas.filter(e => e.id === usuario.escolaId);
-            if (escolasUsuario.length === 0) { 
+            
+            usuarioLogado = colaborador;
+            const escolaObj = escolas.find(e => e.nome === colaborador.escola);
+            
+            if (!escolaObj) { 
                 alert('❌ Você não está vinculado a nenhuma escola.'); 
                 return; 
             }
-            if (escolasUsuario.length === 1) {
-                escolaSelecionada = escolasUsuario[0];
-                iniciarPontoAutomatico();
-            } else {
-                document.getElementById('welcomeNome').textContent = usuario.nome;
-                let html = '';
-                escolasUsuario.forEach(e => { 
-                    html += `<div class="escola-card" onclick="selecionarEscola(${e.id})"><h3>${escapeHtml(e.nome)}</h3><p>Clique para selecionar</p></div>`; 
-                });
-                document.getElementById('escolasList').innerHTML = html;
-                document.getElementById('screenLogin').classList.remove('active');
-                document.getElementById('screenEscola').classList.add('active');
-            }
-        }
-        
-        function selecionarEscola(id) { 
-            escolaSelecionada = escolas.find(e => e.id === id); 
-            if (escolaSelecionada) iniciarPontoAutomatico(); 
+            
+            // Se tem escola definida, vai direto para a câmera
+            document.getElementById('welcomeNome').textContent = colaborador.nome;
+            escolaSelecionada = escolaObj;
+            iniciarPontoAutomatico();
         }
         
         function iniciarPontoAutomatico() {
+            document.getElementById('screenLogin').classList.remove('active');
             document.getElementById('screenEscola').classList.remove('active');
             document.getElementById('cameraNome').textContent = usuarioLogado.nome;
             document.getElementById('cameraEscola').textContent = escolaSelecionada.nome;
@@ -941,7 +931,7 @@
             const tipo = document.getElementById('manualTipo').value;
             const obs = document.getElementById('manualObs').value.trim();
             const dados = { 
-                matricula: usuarioLogado.matricula || usuarioLogado.email, 
+                matricula: usuarioLogado.matricula, 
                 tipo: tipo, 
                 observacao: obs, 
                 origem: 'Manual' 
@@ -1028,7 +1018,7 @@
         async function registrarPontoAutomatico() {
             if (scanInterval) clearInterval(scanInterval);
             const hoje = new Date().toLocaleDateString('pt-BR');
-            const matricula = usuarioLogado.matricula || usuarioLogado.email;
+            const matricula = usuarioLogado.matricula;
             const existe = registrosPonto.find(r => r.matricula === matricula && r.data === hoje && !r.saida);
             const dados = { 
                 matricula: matricula, 
@@ -1166,7 +1156,7 @@
             } 
         }
         
-        // ================= CRUD COLABORADORES (COM VALIDAÇÃO DE MATRÍCULA) =================
+        // ================= CRUD COLABORADORES =================
         function mostrarFormColaborador() { 
             if (!logadoTI) { alert('Faça login!'); return; } 
             document.getElementById('screenTI').classList.remove('active'); 
@@ -1222,22 +1212,23 @@
                 return;
             }
             
+            // VALIDAÇÃO DE EMAIL DUPLICADO
+            const emailExistente = colaboradores.some(c => c.email === email && c.id !== colaboradorEditando);
+            if (emailExistente) {
+                alert(`❌ Email "${email}" já está cadastrado para outro colaborador!`);
+                return;
+            }
+            
             const dados = { 
                 nome, 
+                email,
+                senha,
                 matricula, 
                 cargo, 
                 departamento, 
                 escola, 
                 cargaHoraria: carga 
             };
-            
-            const escolaObj = escolas.find(e => e.nome === escola);
-            const userIdx = usuarios.findIndex(u => u.email === email);
-            if (userIdx !== -1) {
-                usuarios[userIdx] = { ...usuarios[userIdx], nome, senha, matricula, escolaId: escolaObj?.id };
-            } else {
-                usuarios.push({ email, senha, matricula, nome, escolaId: escolaObj?.id, hash: null });
-            }
             
             mostrarLoading('Salvando colaborador...');
             let r;
@@ -1266,12 +1257,6 @@
             
             if (r.sucesso) {
                 alert('✅ Colaborador excluído com sucesso!');
-                // Remover também da lista local de usuários
-                const colab = colaboradores.find(c => c.id == id);
-                if (colab) {
-                    const userIndex = usuarios.findIndex(u => u.email === colab.email);
-                    if (userIndex !== -1) usuarios.splice(userIndex, 1);
-                }
                 await carregarColaboradores();
                 renderizarColaboradoresTI();
             } else {
@@ -1376,7 +1361,7 @@
         // ================= BACKUP E FOLHA =================
         function fazerBackup() { 
             if (!logadoTI) { alert('Faça login!'); return; } 
-            const backup = { escolas, colaboradores, usuarios, registros: registrosPonto, trocas: trocasTurno, data: new Date().toLocaleString() }; 
+            const backup = { escolas, colaboradores, registros: registrosPonto, trocas: trocasTurno, data: new Date().toLocaleString() }; 
             const blob = new Blob([JSON.stringify(backup, null, 2)], { type: 'application/json' }); 
             const a = document.createElement('a'); 
             a.href = URL.createObjectURL(blob); 
@@ -1413,7 +1398,7 @@
                         total += sh - eh; 
                     } 
                 }); 
-                html += `<h3>${escapeHtml(f.colaborador)} - ${escapeHtml(f.escola)}</h3><p>Carga: ${f.cargaHoraria}h | Total: ${total.toFixed(2)}h</p><table><thead><tr><th>Data</th><th>Entrada</th><th>Saída</th></tr></thead><tbody>`; 
+                html += `<h3>${escapeHtml(f.colaborador)} - ${escapeHtml(f.escola)}</h3><p>Carga: ${f.cargaHoraria}h | Total: ${total.toFixed(2)}h</p> <table><thead><tr><th>Data</th><th>Entrada</th><th>Saída</th></tr></thead><tbody>`; 
                 const dias = new Date(ano, mes, 0).getDate(); 
                 for(let d=1; d<=dias; d++){ 
                     const dia = d.toString().padStart(2,'0'); 

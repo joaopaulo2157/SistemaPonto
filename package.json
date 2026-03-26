@@ -1,11 +1,12 @@
 {
   "name": "ponto-app",
   "version": "1.0.0",
-  "type": "module",
+  "description": "Sistema de Ponto Eletrônico",
+  "main": "index.js",
   "engines": {
     "node": "20.x"
   },
   "dependencies": {
-    "pg": "^8.11.3"
+    "@vercel/blob": "^1.0.0"
   }
 }

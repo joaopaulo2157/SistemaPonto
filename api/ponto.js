@@ -1,26 +1,34 @@
 // api/ponto.js
 // Sistema de Ponto Eletrônico - Backend com PostgreSQL NeonDB
-// Versão Oficial - 100% Funcional
+// Versão Corrigida
 
 const { Pool } = require('pg');
 
 // ================= CONEXÃO COM BANCO DE DADOS =================
-// Usando a string de conexão do NeonDB
-const pool = new Pool({
-  connectionString: process.env.DATABASE_URL,
-  ssl: {
-    rejectUnauthorized: false
+let pool = null;
+
+function getPool() {
+  if (!pool) {
+    pool = new Pool({
+      connectionString: process.env.DATABASE_URL,
+      ssl: {
+        rejectUnauthorized: false
+      },
+      connectionTimeoutMillis: 5000,
+      idleTimeoutMillis: 30000
+    });
   }
-});
+  return pool;
+}
 
 // ================= FUNÇÃO PARA EXECUTAR QUERIES =================
 async function query(sql, params = []) {
-  const client = await pool.connect();
+  const client = await getPool().connect();
   try {
     const result = await client.query(sql, params);
     return result;
   } catch (error) {
-    console.error('Erro na query:', error);
+    console.error('Erro na query:', error.message);
     throw error;
   } finally {
     client.release();
@@ -31,127 +39,122 @@ async function query(sql, params = []) {
 async function inicializarTabelas() {
   console.log('📊 Criando tabelas no PostgreSQL NeonDB...');
   
-  // Tabela de Escolas
-  await query(`
-    CREATE TABLE IF NOT EXISTS escolas (
-      id SERIAL PRIMARY KEY,
-      nome VARCHAR(255) NOT NULL,
-      endereco TEXT,
-      telefone VARCHAR(50),
-      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-    )
-  `);
-  console.log('✅ Tabela escolas criada');
-  
-  // Tabela de Colaboradores
-  await query(`
-    CREATE TABLE IF NOT EXISTS colaboradores (
-      id SERIAL PRIMARY KEY,
-      nome VARCHAR(255) NOT NULL,
-      email VARCHAR(255) UNIQUE NOT NULL,
-      senha VARCHAR(255) NOT NULL,
-      matricula VARCHAR(50) UNIQUE NOT NULL,
-      cargo VARCHAR(100),
-      departamento VARCHAR(100),
-      escola_id INTEGER REFERENCES escolas(id),
-      carga_horaria INTEGER DEFAULT 160,
-      hash_facial TEXT,
-      status VARCHAR(20) DEFAULT 'Ativo',
-      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-    )
-  `);
-  console.log('✅ Tabela colaboradores criada');
-  
-  // Tabela de Registros de Ponto
-  await query(`
-    CREATE TABLE IF NOT EXISTS registros_ponto (
-      id SERIAL PRIMARY KEY,
-      colaborador_id INTEGER REFERENCES colaboradores(id),
-      matricula VARCHAR(50),
-      nome VARCHAR(255),
-      escola VARCHAR(255),
-      data DATE NOT NULL,
-      entrada TIME,
-      saida TIME,
-      tipo VARCHAR(50),
-      observacao TEXT,
-      latitude VARCHAR(50),
-      longitude VARCHAR(50),
-      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-    )
-  `);
-  console.log('✅ Tabela registros_ponto criada');
-  
-  // Tabela de Trocas de Turno
-  await query(`
-    CREATE TABLE IF NOT EXISTS trocas_turno (
-      id SERIAL PRIMARY KEY,
-      colaborador_saida_id INTEGER REFERENCES colaboradores(id),
-      colaborador_saida_nome VARCHAR(255),
-      colaborador_entrada_id INTEGER REFERENCES colaboradores(id),
-      colaborador_entrada_nome VARCHAR(255),
-      data DATE NOT NULL,
-      motivo TEXT,
-      observacao TEXT,
-      status VARCHAR(20) DEFAULT 'Pendente',
-      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-    )
-  `);
-  console.log('✅ Tabela trocas_turno criada');
-  
-  // Tabela de Usuários TI
-  await query(`
-    CREATE TABLE IF NOT EXISTS usuarios_ti (
-      id SERIAL PRIMARY KEY,
-      usuario VARCHAR(100) UNIQUE NOT NULL,
-      senha VARCHAR(255) NOT NULL,
-      tipo VARCHAR(50) DEFAULT 'Comum',
-      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-    )
-  `);
-  console.log('✅ Tabela usuarios_ti criada');
-  
-  // ================= INSERIR DADOS PADRÃO =================
-  
-  // Inserir escolas padrão
-  const escolasCount = await query('SELECT COUNT(*) FROM escolas');
-  if (parseInt(escolasCount.rows[0].count) === 0) {
-    const escolasPadrao = [
-      'CENTRO INFANTIL VEREADOR EVANDRO CARI',
-      'EMEIF AUDALIO MACIANO DA SILVA',
-      'EMEIF FREI DAMIAO',
-      'EMEIF SANTA ANA',
-      'EMEIF JOAO VIEIRA GOMES',
-      'EMEIF PEDRO FRANCISCO DAS CHAGAS',
-      'EMEIF MANOEL VIEIRA GADI'
-    ];
-    for (const nome of escolasPadrao) {
-      await query('INSERT INTO escolas (nome) VALUES ($1)', [nome]);
+  try {
+    // Tabela de Escolas
+    await query(`
+      CREATE TABLE IF NOT EXISTS escolas (
+        id SERIAL PRIMARY KEY,
+        nome VARCHAR(255) NOT NULL,
+        endereco TEXT,
+        telefone VARCHAR(50),
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      )
+    `);
+    
+    // Tabela de Colaboradores
+    await query(`
+      CREATE TABLE IF NOT EXISTS colaboradores (
+        id SERIAL PRIMARY KEY,
+        nome VARCHAR(255) NOT NULL,
+        email VARCHAR(255) UNIQUE NOT NULL,
+        senha VARCHAR(255) NOT NULL,
+        matricula VARCHAR(50) UNIQUE NOT NULL,
+        cargo VARCHAR(100),
+        departamento VARCHAR(100),
+        escola_id INTEGER REFERENCES escolas(id),
+        carga_horaria INTEGER DEFAULT 160,
+        hash_facial TEXT,
+        status VARCHAR(20) DEFAULT 'Ativo',
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      )
+    `);
+    
+    // Tabela de Registros de Ponto
+    await query(`
+      CREATE TABLE IF NOT EXISTS registros_ponto (
+        id SERIAL PRIMARY KEY,
+        colaborador_id INTEGER REFERENCES colaboradores(id),
+        matricula VARCHAR(50),
+        nome VARCHAR(255),
+        escola VARCHAR(255),
+        data DATE NOT NULL,
+        entrada TIME,
+        saida TIME,
+        tipo VARCHAR(50),
+        observacao TEXT,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      )
+    `);
+    
+    // Tabela de Trocas de Turno
+    await query(`
+      CREATE TABLE IF NOT EXISTS trocas_turno (
+        id SERIAL PRIMARY KEY,
+        colaborador_saida_id INTEGER REFERENCES colaboradores(id),
+        colaborador_saida_nome VARCHAR(255),
+        colaborador_entrada_id INTEGER REFERENCES colaboradores(id),
+        colaborador_entrada_nome VARCHAR(255),
+        data DATE NOT NULL,
+        motivo TEXT,
+        observacao TEXT,
+        status VARCHAR(20) DEFAULT 'Pendente',
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      )
+    `);
+    
+    // Tabela de Usuários TI
+    await query(`
+      CREATE TABLE IF NOT EXISTS usuarios_ti (
+        id SERIAL PRIMARY KEY,
+        usuario VARCHAR(100) UNIQUE NOT NULL,
+        senha VARCHAR(255) NOT NULL,
+        tipo VARCHAR(50) DEFAULT 'Comum',
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      )
+    `);
+    
+    console.log('✅ Tabelas criadas/verificadas com sucesso!');
+    
+    // Inserir escolas padrão
+    const escolasCount = await query('SELECT COUNT(*) FROM escolas');
+    if (parseInt(escolasCount.rows[0].count) === 0) {
+      const escolasPadrao = [
+        'CENTRO INFANTIL VEREADOR EVANDRO CARI',
+        'EMEIF AUDALIO MACIANO DA SILVA',
+        'EMEIF FREI DAMIAO',
+        'EMEIF SANTA ANA',
+        'EMEIF JOAO VIEIRA GOMES',
+        'EMEIF PEDRO FRANCISCO DAS CHAGAS',
+        'EMEIF MANOEL VIEIRA GADI'
+      ];
+      for (const nome of escolasPadrao) {
+        await query('INSERT INTO escolas (nome) VALUES ($1)', [nome]);
+      }
+      console.log('✅ Escolas padrão inseridas');
     }
-    console.log('✅ Escolas padrão inseridas');
+    
+    // Inserir usuário admin
+    const adminExistente = await query('SELECT * FROM usuarios_ti WHERE usuario = $1', ['admin']);
+    if (adminExistente.rows.length === 0) {
+      await query(`INSERT INTO usuarios_ti (usuario, senha, tipo) VALUES ($1, $2, $3)`, ['admin', 'ti@2024', 'Master']);
+      console.log('✅ Usuário admin criado');
+    }
+    
+    // Inserir colaborador padrão
+    const colaboradorExistente = await query('SELECT * FROM colaboradores WHERE matricula = $1', ['1001']);
+    if (colaboradorExistente.rows.length === 0) {
+      await query(`
+        INSERT INTO colaboradores (nome, email, senha, matricula, cargo, escola_id)
+        VALUES ($1, $2, $3, $4, $5, (SELECT id FROM escolas LIMIT 1))
+      `, ['João Paulo', 'joaopaulo2009@gmail.com', '2026', '1001', 'Professor']);
+      console.log('✅ Colaborador padrão criado');
+    }
+    
+    return true;
+  } catch (error) {
+    console.error('❌ Erro ao criar tabelas:', error.message);
+    return false;
   }
-  
-  // Inserir usuário admin
-  const adminExistente = await query('SELECT * FROM usuarios_ti WHERE usuario = $1', ['admin']);
-  if (adminExistente.rows.length === 0) {
-    await query(`
-      INSERT INTO usuarios_ti (usuario, senha, tipo) 
-      VALUES ($1, $2, $3)
-    `, ['admin', 'ti@2024', 'Master']);
-    console.log('✅ Usuário admin criado');
-  }
-  
-  // Inserir colaborador padrão
-  const colaboradorExistente = await query('SELECT * FROM colaboradores WHERE matricula = $1', ['1001']);
-  if (colaboradorExistente.rows.length === 0) {
-    await query(`
-      INSERT INTO colaboradores (nome, email, senha, matricula, cargo, escola_id)
-      VALUES ($1, $2, $3, $4, $5, $6)
-    `, ['João Paulo', 'joaopaulo2009@gmail.com', '2026', '1001', 'Professor', 1]);
-    console.log('✅ Colaborador padrão criado');
-  }
-  
-  console.log('📊 Banco de dados PostgreSQL NeonDB inicializado com sucesso!');
 }
 
 // ================= FUNÇÕES CORS =================
@@ -159,7 +162,6 @@ function setCorsHeaders(res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
-  res.setHeader('Access-Control-Max-Age', '86400');
 }
 
 // ================= HANDLER PRINCIPAL =================
@@ -172,15 +174,25 @@ module.exports = async function handler(req, res) {
     return res.status(200).end();
   }
 
+  // Verificar se DATABASE_URL está configurado
+  if (!process.env.DATABASE_URL) {
+    return res.status(500).json({ 
+      sucesso: false, 
+      mensagem: 'DATABASE_URL não configurada. Adicione a variável de ambiente no Vercel.',
+      solucao: 'Acesse Vercel > Settings > Environment Variables e adicione DATABASE_URL com a string de conexão do NeonDB'
+    });
+  }
+
+  // Inicializar tabelas
   try {
-    // Inicializar tabelas
     await inicializarTabelas();
   } catch (error) {
-    console.error('❌ Erro ao conectar com banco:', error);
+    console.error('Erro ao inicializar banco:', error.message);
     return res.status(500).json({ 
       sucesso: false, 
       mensagem: 'Erro ao conectar com banco de dados',
-      detalhes: error.message
+      detalhes: error.message,
+      solucao: 'Verifique se a string de conexão está correta e se o banco está ativo'
     });
   }
 
@@ -193,36 +205,14 @@ module.exports = async function handler(req, res) {
       
       return res.status(200).json({ 
         sucesso: true, 
-        mensagem: 'API do Ponto Eletrônico está funcionando!',
+        mensagem: '✅ API do Ponto Eletrônico está funcionando!',
         versao: '2.0.0',
         banco: 'PostgreSQL NeonDB',
         estatisticas: {
           totalColaboradores: parseInt(totalColab.rows[0].count),
           registrosHoje: parseInt(registrosHoje.rows[0].count)
         },
-        endpoints: [
-          'POST ?acao=estatisticas',
-          'POST ?acao=listarEscolas',
-          'POST ?acao=adicionarEscola',
-          'POST ?acao=editarEscola',
-          'POST ?acao=excluirEscola',
-          'POST ?acao=listarColaboradores',
-          'POST ?acao=adicionarColaborador',
-          'POST ?acao=editarColaborador',
-          'POST ?acao=excluirColaborador',
-          'POST ?acao=loginColaborador',
-          'POST ?acao=listarRegistros',
-          'POST ?acao=registrarPonto',
-          'POST ?acao=verificarBiometria',
-          'POST ?acao=cadastrarBiometria',
-          'POST ?acao=listarTrocas',
-          'POST ?acao=registrarTroca',
-          'POST ?acao=loginTI',
-          'POST ?acao=listarUsuariosTI',
-          'POST ?acao=adicionarUsuarioTI',
-          'POST ?acao=excluirUsuarioTI',
-          'POST ?acao=gerarFolhaPonto'
-        ]
+        instrucoes: 'Use POST com ?acao=nome da ação'
       });
     } catch (error) {
       return res.status(500).json({ 
@@ -239,22 +229,20 @@ module.exports = async function handler(req, res) {
   }
 
   const { acao } = req.query;
-  const dados = req.body;
+  const body = req.body;
 
   console.log(`📱 API chamada: ${acao}`);
 
   try {
-    // ================= CRUD ESCOLAS =================
+    // ================= ESCOLAS =================
     if (acao === 'listarEscolas') {
       const result = await query('SELECT * FROM escolas ORDER BY nome');
       return res.status(200).json({ sucesso: true, dados: result.rows });
     }
 
     if (acao === 'adicionarEscola') {
-      const { nome, endereco, telefone } = dados;
-      if (!nome) {
-        return res.status(400).json({ sucesso: false, mensagem: 'Nome é obrigatório!' });
-      }
+      const { nome, endereco, telefone } = body;
+      if (!nome) return res.status(400).json({ sucesso: false, mensagem: 'Nome é obrigatório!' });
       const result = await query(
         'INSERT INTO escolas (nome, endereco, telefone) VALUES ($1, $2, $3) RETURNING *',
         [nome, endereco || '', telefone || '']
@@ -263,24 +251,22 @@ module.exports = async function handler(req, res) {
     }
 
     if (acao === 'editarEscola') {
-      const { id, nome, endereco, telefone } = dados;
+      const { id, nome, endereco, telefone } = body;
       const result = await query(
         'UPDATE escolas SET nome = $1, endereco = $2, telefone = $3 WHERE id = $4 RETURNING *',
         [nome, endereco || '', telefone || '', id]
       );
-      if (result.rows.length === 0) {
-        return res.status(404).json({ sucesso: false, mensagem: 'Escola não encontrada!' });
-      }
-      return res.status(200).json({ sucesso: true, mensagem: '✅ Escola editada!', dados: result.rows[0] });
+      if (result.rows.length === 0) return res.status(404).json({ sucesso: false, mensagem: 'Escola não encontrada!' });
+      return res.status(200).json({ sucesso: true, mensagem: '✅ Escola editada!' });
     }
 
     if (acao === 'excluirEscola') {
-      const { id } = dados;
+      const { id } = body;
       await query('DELETE FROM escolas WHERE id = $1', [id]);
       return res.status(200).json({ sucesso: true, mensagem: '✅ Escola excluída!' });
     }
 
-    // ================= CRUD COLABORADORES =================
+    // ================= COLABORADORES =================
     if (acao === 'listarColaboradores') {
       const result = await query(`
         SELECT c.*, e.nome as escola_nome 
@@ -306,26 +292,25 @@ module.exports = async function handler(req, res) {
     }
 
     if (acao === 'adicionarColaborador') {
-      const { nome, email, senha, matricula, cargo, departamento, escola, cargaHoraria } = dados;
+      const { nome, email, senha, matricula, cargo, departamento, escola, cargaHoraria } = body;
       
       if (!nome || !email || !senha || !matricula || !escola) {
         return res.status(400).json({ sucesso: false, mensagem: 'Preencha todos os campos obrigatórios!' });
       }
       
-      // Buscar ID da escola pelo nome
+      // Buscar ID da escola
       const escolaResult = await query('SELECT id FROM escolas WHERE nome = $1', [escola]);
       if (escolaResult.rows.length === 0) {
         return res.status(400).json({ sucesso: false, mensagem: 'Escola não encontrada!' });
       }
       const escolaId = escolaResult.rows[0].id;
       
-      // Verificar matrícula duplicada
+      // Verificar duplicados
       const matriculaExistente = await query('SELECT * FROM colaboradores WHERE matricula = $1', [matricula]);
       if (matriculaExistente.rows.length > 0) {
         return res.status(400).json({ sucesso: false, mensagem: '❌ Matrícula já existe!' });
       }
       
-      // Verificar email duplicado
       const emailExistente = await query('SELECT * FROM colaboradores WHERE email = $1', [email]);
       if (emailExistente.rows.length > 0) {
         return res.status(400).json({ sucesso: false, mensagem: '❌ Email já existe!' });
@@ -340,23 +325,20 @@ module.exports = async function handler(req, res) {
     }
 
     if (acao === 'editarColaborador') {
-      const { id, dadosColab } = dados;
+      const { id, dadosColab } = body;
       const { nome, email, senha, matricula, cargo, departamento, escola, cargaHoraria } = dadosColab;
       
-      // Buscar ID da escola pelo nome
+      // Buscar ID da escola
       const escolaResult = await query('SELECT id FROM escolas WHERE nome = $1', [escola]);
       let escolaId = null;
-      if (escolaResult.rows.length > 0) {
-        escolaId = escolaResult.rows[0].id;
-      }
+      if (escolaResult.rows.length > 0) escolaId = escolaResult.rows[0].id;
       
-      // Verificar matrícula duplicada (exceto o próprio)
+      // Verificar duplicados (exceto próprio)
       const matriculaExistente = await query('SELECT * FROM colaboradores WHERE matricula = $1 AND id != $2', [matricula, id]);
       if (matriculaExistente.rows.length > 0) {
         return res.status(400).json({ sucesso: false, mensagem: '❌ Matrícula já existe para outro colaborador!' });
       }
       
-      // Verificar email duplicado (exceto o próprio)
       const emailExistente = await query('SELECT * FROM colaboradores WHERE email = $1 AND id != $2', [email, id]);
       if (emailExistente.rows.length > 0) {
         return res.status(400).json({ sucesso: false, mensagem: '❌ Email já existe para outro colaborador!' });
@@ -368,20 +350,18 @@ module.exports = async function handler(req, res) {
         WHERE id = $9 RETURNING *
       `, [nome, email, senha, matricula, cargo || '', departamento || '', escolaId, cargaHoraria || 160, id]);
       
-      if (result.rows.length === 0) {
-        return res.status(404).json({ sucesso: false, mensagem: 'Colaborador não encontrado!' });
-      }
+      if (result.rows.length === 0) return res.status(404).json({ sucesso: false, mensagem: 'Colaborador não encontrado!' });
       return res.status(200).json({ sucesso: true, mensagem: '✅ Colaborador editado!' });
     }
 
     if (acao === 'excluirColaborador') {
-      const { id } = dados;
+      const { id } = body;
       await query('DELETE FROM colaboradores WHERE id = $1', [id]);
       return res.status(200).json({ sucesso: true, mensagem: '✅ Colaborador excluído!' });
     }
 
     if (acao === 'loginColaborador') {
-      const { email, senha } = dados;
+      const { email, senha } = body;
       const result = await query(`
         SELECT c.*, e.nome as escola_nome 
         FROM colaboradores c 
@@ -393,67 +373,41 @@ module.exports = async function handler(req, res) {
         return res.status(401).json({ sucesso: false, mensagem: '❌ Email ou senha incorretos!' });
       }
       
-      const colaborador = {
-        id: result.rows[0].id,
-        nome: result.rows[0].nome,
-        email: result.rows[0].email,
-        matricula: result.rows[0].matricula,
-        escola: result.rows[0].escola_nome,
-        escolaId: result.rows[0].escola_id,
-        cargo: result.rows[0].cargo,
-        departamento: result.rows[0].departamento,
-        cargaHoraria: result.rows[0].carga_horaria,
-        hashFacial: result.rows[0].hash_facial
-      };
-      
-      return res.status(200).json({ sucesso: true, dados: colaborador });
+      return res.status(200).json({ sucesso: true, dados: result.rows[0] });
     }
 
-    // ================= REGISTROS DE PONTO =================
+    // ================= REGISTROS =================
     if (acao === 'listarRegistros') {
       const result = await query('SELECT * FROM registros_ponto ORDER BY data DESC, entrada DESC LIMIT 100');
       return res.status(200).json({ sucesso: true, dados: result.rows });
     }
 
     if (acao === 'registrarPonto') {
-      const { matricula, tipo, observacao, data, hora, origem } = dados;
+      const { matricula, tipo, observacao, data, hora, origem } = body;
       
-      // Buscar colaborador pela matrícula
       const colabResult = await query('SELECT * FROM colaboradores WHERE matricula = $1', [matricula]);
-      if (colabResult.rows.length === 0) {
-        return res.status(404).json({ sucesso: false, mensagem: 'Colaborador não encontrado!' });
-      }
+      if (colabResult.rows.length === 0) return res.status(404).json({ sucesso: false, mensagem: 'Colaborador não encontrado!' });
       const colaborador = colabResult.rows[0];
       
-      // Buscar nome da escola
       let escolaNome = '';
       if (colaborador.escola_id) {
         const escolaResult = await query('SELECT nome FROM escolas WHERE id = $1', [colaborador.escola_id]);
-        if (escolaResult.rows.length > 0) {
-          escolaNome = escolaResult.rows[0].nome;
-        }
+        if (escolaResult.rows.length > 0) escolaNome = escolaResult.rows[0].nome;
       }
       
       const hoje = data || new Date().toISOString().split('T')[0];
       const horaAtual = hora || new Date().toLocaleTimeString('pt-BR');
       
-      // Verificar se já tem registro aberto
       const registroExistente = await query(`
-        SELECT * FROM registros_ponto 
-        WHERE matricula = $1 AND data = $2 AND saida IS NULL
+        SELECT * FROM registros_ponto WHERE matricula = $1 AND data = $2 AND saida IS NULL
       `, [matricula, hoje]);
       
       if (tipo === 'saida' && registroExistente.rows.length > 0) {
-        // Atualizar saída
-        await query(`
-          UPDATE registros_ponto 
-          SET saida = $1, observacao = $2, tipo = $3
-          WHERE id = $4
-        `, [horaAtual, observacao || '', origem || 'Facial', registroExistente.rows[0].id]);
+        await query(`UPDATE registros_ponto SET saida = $1, observacao = $2 WHERE id = $3`, 
+          [horaAtual, observacao || '', registroExistente.rows[0].id]);
         return res.status(200).json({ sucesso: true, mensagem: '✅ Saída registrada!', tipo: 'saida' });
       } 
       else if (tipo === 'entrada' && registroExistente.rows.length === 0) {
-        // Nova entrada
         await query(`
           INSERT INTO registros_ponto (colaborador_id, matricula, nome, escola, data, entrada, tipo, observacao)
           VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
@@ -466,23 +420,19 @@ module.exports = async function handler(req, res) {
 
     // ================= BIOMETRIA =================
     if (acao === 'verificarBiometria') {
-      const { hash } = dados;
+      const { hash } = body;
       const result = await query('SELECT * FROM colaboradores WHERE hash_facial = $1', [hash]);
       if (result.rows.length > 0) {
         return res.status(200).json({ 
           sucesso: true, 
-          colaborador: { 
-            matricula: result.rows[0].matricula, 
-            nome: result.rows[0].nome,
-            id: result.rows[0].id
-          }
+          colaborador: { matricula: result.rows[0].matricula, nome: result.rows[0].nome, id: result.rows[0].id }
         });
       }
       return res.status(200).json({ sucesso: false });
     }
 
     if (acao === 'cadastrarBiometria') {
-      const { matricula, nome, hash } = dados;
+      const { matricula, hash } = body;
       await query('UPDATE colaboradores SET hash_facial = $1 WHERE matricula = $2', [hash, matricula]);
       return res.status(200).json({ sucesso: true, mensagem: '✅ Biometria cadastrada!' });
     }
@@ -494,15 +444,14 @@ module.exports = async function handler(req, res) {
     }
 
     if (acao === 'registrarTroca') {
-      const { saidaMat, saidaNome, entradaMat, entradaNome, data, motivo, observacao } = dados;
+      const { saidaMat, saidaNome, entradaMat, entradaNome, data, motivo, observacao } = body;
       
-      // Buscar IDs dos colaboradores
       const saidaResult = await query('SELECT id FROM colaboradores WHERE matricula = $1', [saidaMat]);
       const entradaResult = await query('SELECT id FROM colaboradores WHERE matricula = $1', [entradaMat]);
       
-      const result = await query(`
+      await query(`
         INSERT INTO trocas_turno (colaborador_saida_id, colaborador_saida_nome, colaborador_entrada_id, colaborador_entrada_nome, data, motivo, observacao)
-        VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING *
+        VALUES ($1, $2, $3, $4, $5, $6, $7)
       `, [saidaResult.rows[0]?.id, saidaNome, entradaResult.rows[0]?.id, entradaNome, data, motivo, observacao || '']);
       
       return res.status(200).json({ sucesso: true, mensagem: '🔄 Troca registrada!' });
@@ -510,7 +459,7 @@ module.exports = async function handler(req, res) {
 
     // ================= USUÁRIOS TI =================
     if (acao === 'loginTI') {
-      const { usuario, senha } = dados;
+      const { usuario, senha } = body;
       const result = await query('SELECT * FROM usuarios_ti WHERE usuario = $1 AND senha = $2', [usuario, senha]);
       if (result.rows.length > 0) {
         return res.status(200).json({ sucesso: true, tipo: result.rows[0].tipo, mensagem: '✅ Login realizado!' });
@@ -524,20 +473,16 @@ module.exports = async function handler(req, res) {
     }
 
     if (acao === 'adicionarUsuarioTI') {
-      const { usuario, senha, tipo } = dados;
+      const { usuario, senha, tipo } = body;
       const existente = await query('SELECT * FROM usuarios_ti WHERE usuario = $1', [usuario]);
-      if (existente.rows.length > 0) {
-        return res.status(400).json({ sucesso: false, mensagem: 'Usuário já existe!' });
-      }
+      if (existente.rows.length > 0) return res.status(400).json({ sucesso: false, mensagem: 'Usuário já existe!' });
       await query('INSERT INTO usuarios_ti (usuario, senha, tipo) VALUES ($1, $2, $3)', [usuario, senha, tipo || 'Comum']);
       return res.status(200).json({ sucesso: true, mensagem: '✅ Usuário adicionado!' });
     }
 
     if (acao === 'excluirUsuarioTI') {
-      const { usuario } = dados;
-      if (usuario === 'admin') {
-        return res.status(400).json({ sucesso: false, mensagem: '⚠️ Não pode excluir o admin!' });
-      }
+      const { usuario } = body;
+      if (usuario === 'admin') return res.status(400).json({ sucesso: false, mensagem: '⚠️ Não pode excluir o admin!' });
       await query('DELETE FROM usuarios_ti WHERE usuario = $1', [usuario]);
       return res.status(200).json({ sucesso: true, mensagem: '✅ Usuário excluído!' });
     }
@@ -556,14 +501,13 @@ module.exports = async function handler(req, res) {
 
     // ================= FOLHA DE PONTO =================
     if (acao === 'gerarFolhaPonto') {
-      const { mes, ano } = dados;
+      const { mes, ano } = body;
       const result = await query(`
         SELECT * FROM registros_ponto 
         WHERE EXTRACT(MONTH FROM data) = $1 AND EXTRACT(YEAR FROM data) = $2
         ORDER BY nome, data
       `, [mes, ano]);
       
-      // Agrupar por colaborador
       const folhas = {};
       result.rows.forEach(r => {
         if (!folhas[r.matricula]) {
@@ -581,10 +525,7 @@ module.exports = async function handler(req, res) {
       return res.status(200).json({ sucesso: true, dados: Object.values(folhas), mes, ano });
     }
 
-    return res.status(404).json({ 
-      sucesso: false, 
-      mensagem: `Ação '${acao}' não encontrada` 
-    });
+    return res.status(404).json({ sucesso: false, mensagem: `Ação '${acao}' não encontrada` });
 
   } catch (error) {
     console.error('❌ Erro na API:', error);

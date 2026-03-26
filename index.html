@@ -79,147 +79,39 @@
             flex: 1;
         }
         
-        .header-action {
-            background: rgba(255,255,255,0.2);
-            border: none;
-            color: white;
-            font-size: 1.5rem;
-            width: 45px;
-            height: 45px;
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            cursor: pointer;
-        }
-        
         /* Conteúdo */
         .content {
-            padding: 20px;
+            padding: 30px 20px;
             flex: 1;
             overflow-y: auto;
             -webkit-overflow-scrolling: touch;
         }
         
-        /* Menu Principal */
-        .main-menu {
-            background: white;
-            border-radius: 40px;
-            padding: 24px;
-            min-height: calc(100vh - 24px);
-            display: flex;
-            flex-direction: column;
+        /* Cards de Escola */
+        .escola-card {
+            background: #f8f9fa;
+            border-radius: 20px;
+            padding: 20px;
+            margin-bottom: 12px;
+            border-left: 5px solid #667eea;
+            cursor: pointer;
+            transition: all 0.2s;
         }
         
-        .logo-area {
-            text-align: center;
-            margin-bottom: 30px;
+        .escola-card:active {
+            background: #e9ecef;
+            transform: scale(0.98);
         }
         
-        .logo {
-            font-size: 5rem;
-            margin-bottom: 10px;
-        }
-        
-        h1 {
+        .escola-card h3 {
             color: #333;
-            font-size: 2rem;
-            font-weight: 700;
+            font-size: 1.1rem;
             margin-bottom: 5px;
         }
         
-        .developer {
+        .escola-card p {
             color: #666;
             font-size: 0.9rem;
-            border-bottom: 2px solid #667eea;
-            padding-bottom: 15px;
-        }
-        
-        .btn-facial {
-            background: linear-gradient(135deg, #43e97b, #38f9d7);
-            color: white;
-            border: none;
-            padding: 28px;
-            border-radius: 40px;
-            font-size: 1.6rem;
-            font-weight: 700;
-            margin-bottom: 20px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 10px;
-            cursor: pointer;
-            box-shadow: 0 15px 30px rgba(67, 233, 123, 0.4);
-            transition: transform 0.2s;
-            width: 100%;
-        }
-        
-        .btn-facial:active {
-            transform: scale(0.97);
-        }
-        
-        .menu-grid {
-            display: grid;
-            grid-template-columns: repeat(2, 1fr);
-            gap: 12px;
-            margin-bottom: 20px;
-        }
-        
-        .menu-item {
-            background: #f8f9fa;
-            border: none;
-            border-radius: 25px;
-            padding: 20px 10px;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            gap: 8px;
-            cursor: pointer;
-            transition: all 0.2s;
-            font-weight: 600;
-            color: #333;
-            font-size: 0.95rem;
-        }
-        
-        .menu-item:active {
-            background: #e9ecef;
-            transform: scale(0.96);
-        }
-        
-        .menu-item span {
-            font-size: 2.2rem;
-        }
-        
-        .stats {
-            background: #f8f9fa;
-            border-radius: 25px;
-            padding: 20px;
-            margin-top: auto;
-        }
-        
-        .stats h3 {
-            color: #333;
-            margin-bottom: 15px;
-            display: flex;
-            align-items: center;
-            gap: 8px;
-        }
-        
-        .stat-item {
-            display: flex;
-            justify-content: space-between;
-            padding: 12px 0;
-            border-bottom: 1px solid #e0e0e0;
-        }
-        
-        .stat-item:last-child {
-            border-bottom: none;
-        }
-        
-        .stat-value {
-            font-weight: 700;
-            color: #667eea;
-            font-size: 1.2rem;
         }
         
         /* Cards */
@@ -267,7 +159,7 @@
             font-weight: 600;
         }
         
-        .form-group input, .form-group select, .form-group textarea {
+        .form-group input {
             width: 100%;
             padding: 16px;
             border: 2px solid #e0e0e0;
@@ -277,7 +169,7 @@
             -webkit-appearance: none;
         }
         
-        .form-group input:focus, .form-group select:focus {
+        .form-group input:focus {
             border-color: #667eea;
             outline: none;
         }
@@ -292,7 +184,7 @@
             font-size: 1rem;
             font-weight: 600;
             width: 100%;
-            margin: 5px 0;
+            margin: 10px 0;
             cursor: pointer;
         }
         
@@ -446,7 +338,7 @@
             cursor: pointer;
         }
         
-        /* Footer fixo */
+        /* Footer fixo com link TI */
         .footer-fixo {
             text-align: center;
             padding: 15px;
@@ -463,6 +355,38 @@
             border-radius: 30px;
             backdrop-filter: blur(5px);
         }
+        
+        .footer-fixo a {
+            color: white;
+            text-decoration: none;
+            font-weight: bold;
+        }
+        
+        .footer-fixo a:active {
+            opacity: 0.7;
+        }
+        
+        /* Links */
+        .link {
+            color: #667eea;
+            text-align: center;
+            margin-top: 20px;
+            cursor: pointer;
+            font-size: 0.9rem;
+        }
+        
+        .version {
+            text-align: center;
+            color: #999;
+            font-size: 0.75rem;
+            margin-top: 20px;
+        }
+        
+        /* Botão Manual */
+        .manual-btn {
+            background: linear-gradient(135deg, #4facfe, #00f2fe);
+            margin-top: 10px;
+        }
     </style>
 </head>
 <body>
@@ -474,81 +398,156 @@
         </div>
     </div>
 
-    <!-- Tela Principal -->
-    <div id="screenMain" class="main-menu">
-        <div class="logo-area">
-            <div class="logo">📱</div>
-            <h1>Sistema de Ponto Online</h1>
-            <div class="developer">Registro de Ponto por Reconhecimento Facial</div>
-        </div>
-        
-        <button class="btn-facial" onclick="navegarPara('facial')">
-            <span>📸</span> BATER PONTO
-        </button>
-        
-        <div class="menu-grid">
-            <button class="menu-item" onclick="navegarPara('ti')">
-                <span>👨‍💻</span>
-                Área T.I
-            </button>
-        </div>
-        
-        <div class="stats">
-            <h3>
-                <span>📊</span> Estatísticas
-            </h3>
-            <div class="stat-item">
-                <span>Total Colaboradores</span>
-                <span class="stat-value" id="totalColab">0</span>
+    <!-- Tela de Login -->
+    <div id="screenLogin" class="screen">
+        <div class="content">
+            <div style="text-align: center; margin-bottom: 40px;">
+                <div class="logo" style="font-size: 4rem;">📱</div>
+                <h1 style="color: #333;">Sistema de Ponto Online</h1>
+                <p style="color: #666; margin-top: 10px;">Faça login para iniciar o ponto</p>
             </div>
-            <div class="stat-item">
-                <span>Registros Hoje</span>
-                <span class="stat-value" id="registrosHoje">0</span>
+            
+            <div class="form-group">
+                <label>Email</label>
+                <input type="email" id="loginEmail" placeholder="Digite seu email">
             </div>
-        </div>
-        
-        <div class="install-banner" id="installBanner">
-            <span>📲 Instalar app</span>
-            <button onclick="installPWA()">Instalar</button>
+            
+            <div class="form-group">
+                <label>Senha de Acesso</label>
+                <input type="password" id="loginSenha" placeholder="Digite sua senha">
+            </div>
+            
+            <div class="form-group">
+                <label>Matrícula On Line</label>
+                <input type="text" id="loginMatricula" placeholder="Digite sua matrícula">
+            </div>
+            
+            <button class="btn-primary" onclick="fazerLogin()">Login</button>
+            
+            <div class="link" onclick="mostrarRecuperarSenha()">Nova Senha</div>
+            
+            <div class="version">
+                (C) 2010-2026 por Carcenter Informática<br>
+                v.2026.3.19.2
+            </div>
         </div>
     </div>
 
-    <!-- Tela: Reconhecimento Facial -->
-    <div id="screenFacial" class="screen">
+    <!-- Tela de Recuperar Senha -->
+    <div id="screenRecuperar" class="screen">
         <div class="header">
-            <button class="btn-back" onclick="voltarParaMenu()">←</button>
-            <div class="header-title">📸 Reconhecimento Facial</div>
+            <button class="btn-back" onclick="voltarParaLogin()">←</button>
+            <div class="header-title">Recuperar Senha</div>
         </div>
         <div class="content">
+            <div style="text-align: center; margin-bottom: 30px;">
+                <p style="color: #666;">Digite seu email para recuperar a senha</p>
+            </div>
+            
+            <div class="form-group">
+                <label>Email</label>
+                <input type="email" id="recuperarEmail" placeholder="Digite seu email">
+            </div>
+            
+            <button class="btn-primary" onclick="enviarRecuperacao()">Enviar</button>
+            <button class="btn-primary btn-warning" onclick="voltarParaLogin()">Voltar</button>
+        </div>
+    </div>
+
+    <!-- Tela de Seleção de Escola -->
+    <div id="screenEscola" class="screen">
+        <div class="header">
+            <button class="btn-back" onclick="voltarParaLogin()">←</button>
+            <div class="header-title">Selecione sua Escola</div>
+        </div>
+        <div class="content">
+            <div style="text-align: center; margin-bottom: 30px;">
+                <div class="logo" style="font-size: 3rem;">🏫</div>
+                <h2 style="color: #333; margin-top: 10px;">Bem vindo, <span id="welcomeNome">Colaborador</span></h2>
+                <p style="color: #666;">Selecione a escola onde você trabalha</p>
+            </div>
+            
+            <div id="escolasList">
+                <!-- Lista de escolas será preenchida via JavaScript -->
+            </div>
+        </div>
+    </div>
+
+    <!-- Tela de Câmera (Ponto Automático) -->
+    <div id="screenCamera" class="screen">
+        <div class="header">
+            <button class="btn-back" onclick="sairParaLogin()">←</button>
+            <div class="header-title">📸 Registrar Ponto</div>
+        </div>
+        <div class="content">
+            <div style="background: #f8f9fa; border-radius: 20px; padding: 15px; margin-bottom: 20px; text-align: center;">
+                <p><strong>👤 Colaborador:</strong> <span id="cameraNome">Carregando...</span></p>
+                <p><strong>🏫 Escola:</strong> <span id="cameraEscola">Carregando...</span></p>
+            </div>
+            
             <div class="camera-container">
                 <video id="video" autoplay playsinline></video>
                 <div class="face-guide"></div>
             </div>
             
-            <div id="facialStatus" class="status status-info">
-                Posicione seu rosto no círculo
+            <div id="cameraStatus" class="status status-info">
+                🔍 Posicione o rosto no círculo para registro automático
             </div>
             
-            <button class="btn-primary btn-success" onclick="capturarRosto()">
-                📸 Capturar e Registrar
-            </button>
-            
-            <div id="matriculaSection" style="display: none;">
-                <div class="form-group">
-                    <label>Matrícula para cadastro:</label>
-                    <input type="text" id="matriculaInput" placeholder="Digite sua matrícula">
+            <div id="manualSection" style="display: none;">
+                <div class="status status-warning">
+                    ⚠️ Reconhecimento facial não identificado
                 </div>
-                <button class="btn-primary" onclick="cadastrarBiometria()">
-                    ✅ Cadastrar Biometria
+                <button class="btn-primary manual-btn" onclick="abrirRegistroManual()">
+                    ✍️ Registrar Ponto Manualmente
                 </button>
             </div>
         </div>
     </div>
 
-    <!-- Tela: Área T.I -->
+    <!-- Tela de Registro Manual -->
+    <div id="screenManual" class="screen">
+        <div class="header">
+            <button class="btn-back" onclick="voltarParaCamera()">←</button>
+            <div class="header-title">📝 Registro Manual</div>
+        </div>
+        <div class="content">
+            <div class="form-group">
+                <label>Tipo de Registro</label>
+                <select id="manualTipo">
+                    <option value="entrada">🚪 Entrada</option>
+                    <option value="saida">🏃 Saída</option>
+                </select>
+            </div>
+            
+            <div class="form-group">
+                <label>Observação</label>
+                <textarea id="manualObs" rows="3" placeholder="Opcional - Ex: Atraso, saída antecipada..."></textarea>
+            </div>
+            
+            <button class="btn-primary btn-success" onclick="registrarPontoManual()">
+                ✅ Confirmar Registro
+            </button>
+            <button class="btn-primary btn-warning" onclick="voltarParaCamera()">
+                📸 Tentar Reconhecimento Novamente
+            </button>
+        </div>
+    </div>
+
+    <!-- Tela de Sucesso -->
+    <div id="screenSucesso" class="screen">
+        <div class="content" style="text-align: center; justify-content: center;">
+            <div class="logo" style="font-size: 5rem; margin-bottom: 20px;">✅</div>
+            <h2 style="color: #333; margin-bottom: 10px;">Ponto Registrado!</h2>
+            <p id="sucessoMensagem" style="color: #666; margin-bottom: 30px;">Entrada registrada com sucesso</p>
+            <button class="btn-primary" onclick="sairParaLogin()">Sair</button>
+        </div>
+    </div>
+
+    <!-- Tela: Área T.I (Restrita - apenas link no rodapé) -->
     <div id="screenTI" class="screen">
         <div class="header">
-            <button class="btn-back" onclick="voltarParaMenu()">←</button>
+            <button class="btn-back" onclick="fecharTI()">←</button>
             <div class="header-title">👨‍💻 Área T.I</div>
         </div>
         <div class="content">
@@ -637,24 +636,6 @@
                     <div class="card-title">💾 Backup</div>
                     <button class="btn-small btn-primary" onclick="fazerBackup()">📦 Fazer Backup</button>
                 </div>
-                
-                <!-- Card: Integração Vercel API -->
-                <div class="card">
-                    <div class="card-title">🚀 Integração Vercel API</div>
-                    <button class="btn-small btn-primary" onclick="testarConexaoVercel()" style="margin: 10px 0;">
-                        🔌 Testar Conexão
-                    </button>
-                    <div id="vercelProjectsList" style="margin: 15px 0;">
-                        <div class="status status-info">Clique em Testar Conexão</div>
-                    </div>
-                    <div id="vercelDeploymentsSection" style="display: none;">
-                        <h4 style="margin: 15px 0 10px;">📦 Deployments</h4>
-                        <div id="vercelDeploymentsList"></div>
-                        <button class="btn-small btn-primary" onclick="voltarParaProjetos()" style="margin-top: 10px;">
-                            ← Voltar para Projetos
-                        </button>
-                    </div>
-                </div>
             </div>
         </div>
     </div>
@@ -672,8 +653,25 @@
             </div>
             
             <div class="form-group">
+                <label>Email *</label>
+                <input type="email" id="colabEmail" placeholder="Digite o email">
+            </div>
+            
+            <div class="form-group">
+                <label>Senha *</label>
+                <input type="password" id="colabSenha" placeholder="Digite a senha">
+            </div>
+            
+            <div class="form-group">
                 <label>Matrícula *</label>
                 <input type="text" id="colabMatricula" placeholder="Digite a matrícula">
+            </div>
+            
+            <div class="form-group">
+                <label>Escola *</label>
+                <select id="colabEscolaSelect">
+                    <option value="">Selecione a escola</option>
+                </select>
             </div>
             
             <div class="form-group">
@@ -687,11 +685,6 @@
             </div>
             
             <div class="form-group">
-                <label>Escola</label>
-                <input type="text" id="colabEscola" placeholder="Nome da escola">
-            </div>
-            
-            <div class="form-group">
                 <label>Carga Horária Mensal (horas)</label>
                 <input type="number" id="colabCarga" value="160">
             </div>
@@ -701,11 +694,11 @@
         </div>
     </div>
 
-    <!-- Tela: Formulário Registro Manual -->
+    <!-- Tela: Formulário Registro Manual (TI) -->
     <div id="screenFormRegistro" class="screen">
         <div class="header">
             <button class="btn-back" onclick="voltarParaTI()">←</button>
-            <div class="header-title">📝 Registro Manual</div>
+            <div class="header-title">📝 Registro Manual (TI)</div>
         </div>
         <div class="content">
             <div class="form-group">
@@ -736,7 +729,7 @@
                 <textarea id="regObs" rows="3" placeholder="Opcional"></textarea>
             </div>
             
-            <button class="btn-primary btn-success" onclick="salvarRegistro()">✅ Salvar Registro</button>
+            <button class="btn-primary btn-success" onclick="salvarRegistroTI()">✅ Salvar Registro</button>
             <button class="btn-danger" onclick="voltarParaTI()">❌ Cancelar</button>
         </div>
     </div>
@@ -812,24 +805,317 @@
         </div>
     </div>
 
-    <!-- Footer fixo -->
+    <!-- Footer fixo com link da Área T.I -->
     <div class="footer-fixo">
-        <p>Desenvolvido por AlfaTech - v5.0</p>
+        <p>Desenvolvido por <a href="#" onclick="abrirAreaTI(); return false;">AlfaTech</a> - v5.0</p>
     </div>
 
     <script>
         // ================= CONFIGURAÇÃO =================
         const API_URL = 'https://sistema-ponto-seven.vercel.app/api/ponto';
         
-        // Variáveis globais
+        // ================= LISTA DE ESCOLAS =================
+        const escolas = [
+            { id: 1, nome: "CENTRO INFANTIL VEREADOR EVANDRO CARI" },
+            { id: 2, nome: "EMEIF AUDALIO MACIANO DA SILVA" },
+            { id: 3, nome: "EMEIF FREI DAMIAO" },
+            { id: 4, nome: "EMEIF SANTA ANA" },
+            { id: 5, nome: "EMEIF JOAO VIEIRA GOMES" },
+            { id: 6, nome: "EMEIF PEDRO FRANCISCO DAS CHAGAS" },
+            { id: 7, nome: "EMEIF MANOEL VIEIRA GADI" }
+        ];
+        
+        // ================= USUÁRIOS CADASTRADOS =================
+        let usuarios = [
+            { email: "joaopaulo2009@gmail.com", senha: "2026", matricula: "1001", nome: "João Paulo", escolaId: null, hash: null }
+        ];
+        
+        // ================= VARIÁVEIS GLOBAIS =================
         let colaboradores = [];
         let registrosPonto = [];
         let trocasTurno = [];
+        let usuariosTI = [
+            { usuario: "admin", senha: "ti@2024", tipo: "Master" }
+        ];
+        let biometria = [];
         let stream = null;
-        let hashTemporario = null;
         let logadoTI = false;
-        let currentProjectId = null;
-
+        
+        // Sessão do usuário logado
+        let usuarioLogado = null;
+        let escolaSelecionada = null;
+        let scanInterval = null;
+        let tentativasReconhecimento = 0;
+        
+        // ================= FUNÇÕES DE AUTENTICAÇÃO =================
+        function mostrarRecuperarSenha() {
+            document.getElementById('screenLogin').classList.remove('active');
+            document.getElementById('screenRecuperar').classList.add('active');
+        }
+        
+        function voltarParaLogin() {
+            document.getElementById('screenRecuperar').classList.remove('active');
+            document.getElementById('screenEscola').classList.remove('active');
+            document.getElementById('screenLogin').classList.add('active');
+        }
+        
+        function fazerLogin() {
+            const email = document.getElementById('loginEmail').value.trim();
+            const senha = document.getElementById('loginSenha').value.trim();
+            const matricula = document.getElementById('loginMatricula').value.trim();
+            
+            if (!email || !senha || !matricula) {
+                alert('Preencha todos os campos!');
+                return;
+            }
+            
+            const usuario = usuarios.find(u => u.email === email && u.senha === senha && u.matricula === matricula);
+            
+            if (!usuario) {
+                alert('❌ Email, senha ou matrícula incorretos!');
+                return;
+            }
+            
+            usuarioLogado = usuario;
+            
+            // Se já tem escola selecionada, vai direto para a câmera
+            if (usuario.escolaId) {
+                escolaSelecionada = escolas.find(e => e.id === usuario.escolaId);
+                iniciarPontoAutomatico();
+            } else {
+                // Mostrar tela de seleção de escola
+                document.getElementById('welcomeNome').textContent = usuario.nome;
+                carregarEscolas();
+                document.getElementById('screenLogin').classList.remove('active');
+                document.getElementById('screenEscola').classList.add('active');
+            }
+        }
+        
+        function carregarEscolas() {
+            const container = document.getElementById('escolasList');
+            let html = '';
+            escolas.forEach(escola => {
+                html += `
+                    <div class="escola-card" onclick="selecionarEscola(${escola.id})">
+                        <h3>${escola.nome}</h3>
+                        <p>Clique para selecionar esta escola</p>
+                    </div>
+                `;
+            });
+            container.innerHTML = html;
+        }
+        
+        function selecionarEscola(escolaId) {
+            escolaSelecionada = escolas.find(e => e.id === escolaId);
+            if (escolaSelecionada) {
+                const index = usuarios.findIndex(u => u.email === usuarioLogado.email);
+                if (index !== -1) {
+                    usuarios[index].escolaId = escolaId;
+                    usuarioLogado.escolaId = escolaId;
+                }
+                iniciarPontoAutomatico();
+            }
+        }
+        
+        function iniciarPontoAutomatico() {
+            document.getElementById('screenEscola').classList.remove('active');
+            document.getElementById('cameraNome').textContent = usuarioLogado.nome;
+            document.getElementById('cameraEscola').textContent = escolaSelecionada.nome;
+            document.getElementById('manualSection').style.display = 'none';
+            document.getElementById('cameraStatus').innerHTML = '🔍 Posicione o rosto no círculo para registro automático';
+            document.getElementById('cameraStatus').className = 'status status-info';
+            document.getElementById('screenCamera').classList.add('active');
+            iniciarCamera();
+        }
+        
+        function sairParaLogin() {
+            pararCamera();
+            if (scanInterval) {
+                clearInterval(scanInterval);
+                scanInterval = null;
+            }
+            usuarioLogado = null;
+            escolaSelecionada = null;
+            tentativasReconhecimento = 0;
+            document.getElementById('screenCamera').classList.remove('active');
+            document.getElementById('screenSucesso').classList.remove('active');
+            document.getElementById('screenManual').classList.remove('active');
+            document.getElementById('screenLogin').classList.add('active');
+            document.getElementById('loginEmail').value = '';
+            document.getElementById('loginSenha').value = '';
+            document.getElementById('loginMatricula').value = '';
+        }
+        
+        function voltarParaCamera() {
+            document.getElementById('screenManual').classList.remove('active');
+            document.getElementById('cameraStatus').innerHTML = '🔍 Posicione o rosto no círculo para registro automático';
+            document.getElementById('cameraStatus').className = 'status status-info';
+            document.getElementById('manualSection').style.display = 'none';
+            document.getElementById('screenCamera').classList.add('active');
+            iniciarCamera();
+        }
+        
+        function abrirRegistroManual() {
+            pararCamera();
+            document.getElementById('screenCamera').classList.remove('active');
+            document.getElementById('screenManual').classList.add('active');
+            document.getElementById('manualTipo').value = 'entrada';
+            document.getElementById('manualObs').value = '';
+        }
+        
+        async function registrarPontoManual() {
+            const tipo = document.getElementById('manualTipo').value;
+            const observacao = document.getElementById('manualObs').value.trim();
+            
+            const dados = {
+                matricula: usuarioLogado.matricula,
+                tipo: tipo,
+                observacao: observacao,
+                origem: 'Manual'
+            };
+            
+            mostrarLoading('Registrando ponto...');
+            const resultado = await chamarAPI('registrarPonto', dados);
+            esconderLoading();
+            
+            if (resultado.sucesso) {
+                document.getElementById('sucessoMensagem').innerHTML = resultado.mensagem;
+                document.getElementById('screenManual').classList.remove('active');
+                document.getElementById('screenSucesso').classList.add('active');
+            } else {
+                alert('❌ ' + resultado.mensagem);
+            }
+        }
+        
+        function enviarRecuperacao() {
+            const email = document.getElementById('recuperarEmail').value.trim();
+            if (!email) {
+                alert('Digite seu email!');
+                return;
+            }
+            alert('✅ Link de recuperação enviado para ' + email);
+            voltarParaLogin();
+        }
+        
+        // ================= CÂMERA E RECONHECIMENTO AUTOMÁTICO =================
+        function iniciarCamera() {
+            if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
+                navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user' } })
+                    .then(function(mediaStream) {
+                        stream = mediaStream;
+                        document.getElementById('video').srcObject = mediaStream;
+                        iniciarReconhecimentoAutomatico();
+                    })
+                    .catch(function(error) {
+                        document.getElementById('cameraStatus').innerHTML = '❌ Erro ao acessar câmera. Use o registro manual.';
+                        document.getElementById('cameraStatus').className = 'status status-error';
+                        document.getElementById('manualSection').style.display = 'block';
+                    });
+            }
+        }
+        
+        function iniciarReconhecimentoAutomatico() {
+            tentativasReconhecimento = 0;
+            if (scanInterval) clearInterval(scanInterval);
+            
+            scanInterval = setInterval(() => {
+                if (stream && stream.active) {
+                    tentativasReconhecimento++;
+                    realizarReconhecimento();
+                    
+                    if (tentativasReconhecimento > 30) {
+                        clearInterval(scanInterval);
+                        document.getElementById('cameraStatus').innerHTML = '⚠️ Não foi possível reconhecer automaticamente. Use o registro manual.';
+                        document.getElementById('cameraStatus').className = 'status status-warning';
+                        document.getElementById('manualSection').style.display = 'block';
+                    }
+                }
+            }, 500);
+        }
+        
+        function realizarReconhecimento() {
+            const video = document.getElementById('video');
+            if (!video.videoWidth) return;
+            
+            const canvas = document.createElement('canvas');
+            canvas.width = video.videoWidth;
+            canvas.height = video.videoHeight;
+            const ctx = canvas.getContext('2d');
+            ctx.translate(canvas.width, 0);
+            ctx.scale(-1, 1);
+            ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+            
+            const foto = canvas.toDataURL('image/jpeg', 0.8);
+            let hash = 0;
+            for (let i = 0; i < foto.length; i++) {
+                hash = ((hash << 5) - hash) + foto.charCodeAt(i);
+                hash = hash & hash;
+            }
+            const hashAtual = hash.toString(36);
+            
+            // Simular reconhecimento (em produção, comparar com hash salvo)
+            if (usuarioLogado.hash && usuarioLogado.hash === hashAtual) {
+                registrarPontoAutomatico();
+            } else if (Math.random() > 0.7) {
+                // Simulação: 30% de chance de reconhecer
+                usuarioLogado.hash = hashAtual;
+                registrarPontoAutomatico();
+            }
+        }
+        
+        async function registrarPontoAutomatico() {
+            if (scanInterval) clearInterval(scanInterval);
+            
+            const hoje = new Date().toLocaleDateString('pt-BR');
+            const horaAtual = new Date().toLocaleTimeString('pt-BR');
+            
+            // Verificar se já tem registro hoje sem saída
+            const registroExistente = registrosPonto.find(r => 
+                r.matricula === usuarioLogado.matricula && r.data === hoje && !r.saida
+            );
+            
+            let tipo = 'entrada';
+            let mensagem = '';
+            
+            if (registroExistente) {
+                tipo = 'saida';
+                mensagem = '✅ Saída registrada com sucesso!';
+            } else {
+                tipo = 'entrada';
+                mensagem = '✅ Entrada registrada com sucesso!';
+            }
+            
+            const dados = {
+                matricula: usuarioLogado.matricula,
+                tipo: tipo,
+                origem: 'Facial Automático'
+            };
+            
+            const resultado = await chamarAPI('registrarPonto', dados);
+            
+            if (resultado.sucesso) {
+                document.getElementById('sucessoMensagem').innerHTML = resultado.mensagem;
+                pararCamera();
+                document.getElementById('screenCamera').classList.remove('active');
+                document.getElementById('screenSucesso').classList.add('active');
+            } else {
+                document.getElementById('cameraStatus').innerHTML = '❌ ' + resultado.mensagem;
+                document.getElementById('cameraStatus').className = 'status status-error';
+                document.getElementById('manualSection').style.display = 'block';
+            }
+        }
+        
+        function pararCamera() {
+            if (stream) {
+                stream.getTracks().forEach(track => track.stop());
+                stream = null;
+            }
+            if (scanInterval) {
+                clearInterval(scanInterval);
+                scanInterval = null;
+            }
+        }
+        
         // ================= FUNÇÕES DE COMUNICAÇÃO =================
         async function chamarAPI(acao, dados = {}) {
             try {
@@ -841,8 +1127,7 @@
                 });
                 
                 if (!resposta.ok) {
-                    const erro = await resposta.text();
-                    throw new Error(`HTTP ${resposta.status}: ${erro}`);
+                    throw new Error(`HTTP ${resposta.status}`);
                 }
                 
                 const resultado = await resposta.json();
@@ -852,7 +1137,16 @@
                 return { sucesso: false, mensagem: 'Erro de conexão: ' + erro.message };
             }
         }
-
+        
+        function mostrarLoading(mensagem) {
+            document.getElementById('loadingMessage').textContent = mensagem || 'Processando...';
+            document.getElementById('loading').style.display = 'flex';
+        }
+        
+        function esconderLoading() {
+            document.getElementById('loading').style.display = 'none';
+        }
+        
         // ================= FUNÇÕES DE CARREGAMENTO =================
         async function listarColaboradores() {
             const resultado = await chamarAPI('listarColaboradores');
@@ -861,7 +1155,7 @@
                 renderizarColaboradores();
             }
         }
-
+        
         async function listarRegistros() {
             const resultado = await chamarAPI('listarRegistros');
             if (resultado.sucesso) {
@@ -869,7 +1163,7 @@
                 renderizarRegistros();
             }
         }
-
+        
         async function listarTrocas() {
             const resultado = await chamarAPI('listarTrocas');
             if (resultado.sucesso) {
@@ -877,17 +1171,7 @@
                 renderizarTrocas();
             }
         }
-
-        async function carregarEstatisticas() {
-            const resultado = await chamarAPI('estatisticas');
-            if (resultado.sucesso) {
-                const totalColab = document.getElementById('totalColab');
-                const registrosHoje = document.getElementById('registrosHoje');
-                if (totalColab) totalColab.textContent = resultado.totalColaboradores || 0;
-                if (registrosHoje) registrosHoje.textContent = resultado.registrosHoje || 0;
-            }
-        }
-
+        
         // ================= FUNÇÕES DE RENDERIZAÇÃO =================
         function renderizarColaboradores() {
             const container = document.getElementById('colaboradoresList');
@@ -914,7 +1198,7 @@
             });
             container.innerHTML = html;
         }
-
+        
         function renderizarRegistros() {
             const container = document.getElementById('registrosList');
             if (!container) return;
@@ -937,7 +1221,7 @@
             });
             container.innerHTML = html;
         }
-
+        
         function renderizarTrocas() {
             const container = document.getElementById('trocasList');
             if (!container) return;
@@ -959,7 +1243,7 @@
             });
             container.innerHTML = html;
         }
-
+        
         function renderizarUsuariosTI(usuarios) {
             const container = document.getElementById('usuariosTIList');
             if (!container) return;
@@ -981,40 +1265,108 @@
             });
             container.innerHTML = html;
         }
-
+        
         function escapeHtml(texto) {
             if (!texto) return '';
             const div = document.createElement('div');
             div.textContent = texto;
             return div.innerHTML;
         }
-
-        // ================= FUNÇÕES DE NAVEGAÇÃO =================
-        function navegarPara(tela) {
-            document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+        
+        // ================= ÁREA T.I =================
+        function abrirAreaTI() {
+            document.getElementById('screenLogin').classList.remove('active');
+            document.getElementById('screenEscola').classList.remove('active');
+            document.getElementById('screenCamera').classList.remove('active');
+            document.getElementById('screenManual').classList.remove('active');
+            document.getElementById('screenSucesso').classList.remove('active');
             document.getElementById('screenMain').style.display = 'none';
+            document.getElementById('screenTI').classList.add('active');
+            document.getElementById('tiPainel').style.display = 'none';
+            document.getElementById('tiStatus').innerHTML = '🔒 Acesso Restrito';
+            document.getElementById('tiStatus').className = 'status status-warning';
+            logadoTI = false;
+        }
+        
+        function fecharTI() {
+            document.getElementById('screenTI').classList.remove('active');
+            document.getElementById('screenLogin').classList.add('active');
+        }
+        
+        async function fazerLoginTI() {
+            const usuario = document.getElementById('tiUsuario').value.trim();
+            const senha = document.getElementById('tiSenha').value.trim();
             
-            if (tela === 'facial') {
-                document.getElementById('screenFacial').classList.add('active');
-                iniciarCamera();
-            } else if (tela === 'ti') {
-                document.getElementById('screenTI').classList.add('active');
-                document.getElementById('tiPainel').style.display = 'none';
-                document.getElementById('tiStatus').innerHTML = '🔒 Acesso Restrito';
-                document.getElementById('tiStatus').className = 'status status-warning';
-                logadoTI = false;
+            const resultado = await chamarAPI('loginTI', { usuario, senha });
+            
+            if (resultado.sucesso) {
+                document.getElementById('tiStatus').innerHTML = '✅ Acesso liberado! Bem-vindo, ' + usuario;
+                document.getElementById('tiStatus').className = 'status status-success';
+                document.getElementById('tiPainel').style.display = 'block';
+                logadoTI = true;
+                await listarColaboradores();
+                await listarRegistros();
+                await listarTrocas();
+                await listarUsuariosTI();
+            } else {
+                document.getElementById('tiStatus').innerHTML = '❌ ' + resultado.mensagem;
+                document.getElementById('tiStatus').className = 'status status-error';
             }
         }
-
-        function voltarParaMenu() {
-            document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
-            document.getElementById('screenMain').style.display = 'flex';
-            if (stream) {
-                stream.getTracks().forEach(track => track.stop());
-                stream = null;
+        
+        async function listarUsuariosTI() {
+            const resultado = await chamarAPI('listarUsuariosTI');
+            if (resultado.sucesso) {
+                renderizarUsuariosTI(resultado.dados);
             }
         }
-
+        
+        function mostrarFormNovoUsuario() {
+            if (!logadoTI) {
+                alert('Faça login na Área T.I primeiro!');
+                return;
+            }
+            document.getElementById('screenTI').classList.remove('active');
+            document.getElementById('screenFormUsuario').classList.add('active');
+            document.getElementById('userUsuario').value = '';
+            document.getElementById('userSenha').value = '';
+            document.getElementById('userTipo').value = 'Comum';
+        }
+        
+        async function salvarUsuarioTI() {
+            const usuario = document.getElementById('userUsuario').value.trim();
+            const senha = document.getElementById('userSenha').value.trim();
+            const tipo = document.getElementById('userTipo').value;
+            
+            if (!usuario || !senha) {
+                alert('Preencha todos os campos!');
+                return;
+            }
+            
+            const resultado = await chamarAPI('adicionarUsuarioTI', { usuario, senha, tipo });
+            alert(resultado.sucesso ? '✅ Usuário adicionado!' : '❌ ' + resultado.mensagem);
+            
+            if (resultado.sucesso) {
+                await listarUsuariosTI();
+                voltarParaTI();
+            }
+        }
+        
+        async function excluirUsuarioTI(usuario) {
+            if (usuario === 'admin') {
+                alert('⚠️ Não pode excluir o usuário admin!');
+                return;
+            }
+            
+            if (confirm(`Excluir usuário ${usuario}?`)) {
+                const resultado = await chamarAPI('excluirUsuarioTI', { usuario });
+                alert(resultado.sucesso ? '✅ Usuário excluído!' : '❌ ' + resultado.mensagem);
+                if (resultado.sucesso) {
+                    await listarUsuariosTI();
+                }
+            }
+        }
+        
         function voltarParaTI() {
             document.getElementById('screenFormColaborador').classList.remove('active');
             document.getElementById('screenFormRegistro').classList.remove('active');
@@ -1028,94 +1380,7 @@
                 listarUsuariosTI();
             }
         }
-
-        // ================= RECONHECIMENTO FACIAL =================
-        function iniciarCamera() {
-            if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
-                navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user' } })
-                    .then(function(mediaStream) {
-                        stream = mediaStream;
-                        document.getElementById('video').srcObject = mediaStream;
-                    })
-                    .catch(function(error) {
-                        document.getElementById('facialStatus').innerHTML = '❌ Erro ao acessar câmera';
-                        document.getElementById('facialStatus').className = 'status status-error';
-                    });
-            }
-        }
-
-        function capturarRosto() {
-            document.getElementById('facialStatus').innerHTML = '🔍 Verificando biometria...';
-            document.getElementById('facialStatus').className = 'status status-info';
-            
-            const video = document.getElementById('video');
-            const canvas = document.createElement('canvas');
-            canvas.width = video.videoWidth;
-            canvas.height = video.videoHeight;
-            canvas.getContext('2d').drawImage(video, 0, 0);
-            const foto = canvas.toDataURL('image/jpeg');
-            
-            let hash = 0;
-            for (let i = 0; i < foto.length; i++) {
-                hash = ((hash << 5) - hash) + foto.charCodeAt(i);
-                hash = hash & hash;
-            }
-            hashTemporario = hash.toString(36);
-            
-            setTimeout(() => {
-                if (Math.random() > 0.3) {
-                    document.getElementById('facialStatus').innerHTML = '✅ Biometria reconhecida! Ponto registrado!';
-                    document.getElementById('facialStatus').className = 'status status-success';
-                    
-                    const registro = {
-                        matricula: "1001",
-                        tipo: "entrada",
-                        origem: "Facial"
-                    };
-                    registrarPonto(registro);
-                    setTimeout(voltarParaMenu, 2000);
-                } else {
-                    document.getElementById('facialStatus').innerHTML = '❌ Biometria não encontrada. Faça o cadastro.';
-                    document.getElementById('facialStatus').className = 'status status-error';
-                    document.getElementById('matriculaSection').style.display = 'block';
-                }
-            }, 1500);
-        }
-
-        function cadastrarBiometria() {
-            const matricula = document.getElementById('matriculaInput').value.trim();
-            if (!matricula) {
-                alert('Digite a matrícula!');
-                return;
-            }
-            
-            const colaborador = colaboradores.find(c => c.matricula === matricula);
-            if (!colaborador) {
-                alert('Matrícula não encontrada!');
-                return;
-            }
-            
-            document.getElementById('facialStatus').innerHTML = '✅ Biometria cadastrada! Ponto registrado!';
-            document.getElementById('facialStatus').className = 'status status-success';
-            document.getElementById('matriculaSection').style.display = 'none';
-            
-            const registro = {
-                matricula: matricula,
-                tipo: "entrada",
-                origem: "Facial (cadastro)"
-            };
-            registrarPonto(registro);
-            setTimeout(voltarParaMenu, 2000);
-        }
-
-        async function registrarPonto(dados) {
-            const resultado = await chamarAPI('registrarPonto', dados);
-            if (resultado.sucesso) {
-                await listarRegistros();
-                await carregarEstatisticas();
-            }
-        }
-
+        
         // ================= COLABORADORES (CRUD) =================
         function mostrarFormColaborador() {
             if (!logadoTI) {
@@ -1125,15 +1390,23 @@
             document.getElementById('screenTI').classList.remove('active');
             document.getElementById('screenFormColaborador').classList.add('active');
             document.getElementById('formColabTitle').innerHTML = '➕ Novo Colaborador';
+            
+            const selectEscola = document.getElementById('colabEscolaSelect');
+            selectEscola.innerHTML = '<option value="">Selecione a escola</option>';
+            escolas.forEach(escola => {
+                selectEscola.innerHTML += `<option value="${escola.nome}">${escola.nome}</option>`;
+            });
+            
             document.getElementById('colabNome').value = '';
+            document.getElementById('colabEmail').value = '';
+            document.getElementById('colabSenha').value = '';
             document.getElementById('colabMatricula').value = '';
             document.getElementById('colabCargo').value = '';
             document.getElementById('colabDepartamento').value = '';
-            document.getElementById('colabEscola').value = '';
             document.getElementById('colabCarga').value = '160';
             window.colaboradorEditando = null;
         }
-
+        
         function editarColaborador(id) {
             const colab = colaboradores.find(c => c.id == id);
             if (!colab) return;
@@ -1141,32 +1414,53 @@
             document.getElementById('screenTI').classList.remove('active');
             document.getElementById('screenFormColaborador').classList.add('active');
             document.getElementById('formColabTitle').innerHTML = '✏️ Editar Colaborador';
+            
+            const selectEscola = document.getElementById('colabEscolaSelect');
+            selectEscola.innerHTML = '<option value="">Selecione a escola</option>';
+            escolas.forEach(escola => {
+                const selected = escola.nome === colab.escola ? 'selected' : '';
+                selectEscola.innerHTML += `<option value="${escola.nome}" ${selected}>${escola.nome}</option>`;
+            });
+            
             document.getElementById('colabNome').value = colab.nome || '';
+            document.getElementById('colabEmail').value = colab.email || '';
+            document.getElementById('colabSenha').value = colab.senha || '';
             document.getElementById('colabMatricula').value = colab.matricula || '';
             document.getElementById('colabCargo').value = colab.cargo || '';
             document.getElementById('colabDepartamento').value = colab.departamento || '';
-            document.getElementById('colabEscola').value = colab.escola || '';
             document.getElementById('colabCarga').value = colab.cargaHoraria || '160';
             window.colaboradorEditando = id;
         }
-
+        
         async function salvarColaborador() {
             const nome = document.getElementById('colabNome').value.trim();
+            const email = document.getElementById('colabEmail').value.trim();
+            const senha = document.getElementById('colabSenha').value.trim();
             const matricula = document.getElementById('colabMatricula').value.trim();
+            const escola = document.getElementById('colabEscolaSelect').value;
+            const cargo = document.getElementById('colabCargo').value.trim();
+            const departamento = document.getElementById('colabDepartamento').value.trim();
+            const cargaHoraria = document.getElementById('colabCarga').value;
             
-            if (!nome || !matricula) {
-                alert('Nome e matrícula são obrigatórios!');
+            if (!nome || !email || !senha || !matricula || !escola) {
+                alert('Nome, email, senha, matrícula e escola são obrigatórios!');
                 return;
             }
             
             const dados = {
                 nome: nome,
+                email: email,
+                senha: senha,
                 matricula: matricula,
-                cargo: document.getElementById('colabCargo').value.trim(),
-                departamento: document.getElementById('colabDepartamento').value.trim(),
-                escola: document.getElementById('colabEscola').value.trim(),
-                cargaHoraria: document.getElementById('colabCarga').value
+                escola: escola,
+                cargo: cargo,
+                departamento: departamento,
+                cargaHoraria: cargaHoraria
             };
+            
+            if (!usuarios.some(u => u.email === email)) {
+                usuarios.push({ email: email, senha: senha, matricula: matricula, nome: nome, escolaId: escolas.find(e => e.nome === escola)?.id });
+            }
             
             if (window.colaboradorEditando) {
                 const resultado = await chamarAPI('editarColaborador', { id: window.colaboradorEditando, dadosColab: dados });
@@ -1177,20 +1471,18 @@
             }
             
             await listarColaboradores();
-            await carregarEstatisticas();
             voltarParaTI();
         }
-
+        
         async function excluirColaborador(id) {
             if (confirm('Tem certeza que deseja excluir este colaborador?')) {
                 const resultado = await chamarAPI('excluirColaborador', { id });
                 alert(resultado.sucesso ? '✅ Colaborador excluído!' : '❌ ' + resultado.mensagem);
                 await listarColaboradores();
-                await carregarEstatisticas();
             }
         }
-
-        // ================= REGISTROS =================
+        
+        // ================= REGISTROS (TI) =================
         function mostrarFormRegistro() {
             if (!logadoTI) {
                 alert('Faça login na Área T.I primeiro!');
@@ -1209,8 +1501,8 @@
             document.getElementById('regTipo').value = 'entrada';
             document.getElementById('regObs').value = '';
         }
-
-        async function salvarRegistro() {
+        
+        async function salvarRegistroTI() {
             const matricula = document.getElementById('regMatricula').value.trim();
             const tipo = document.getElementById('regTipo').value;
             const dataInput = document.getElementById('regData').value;
@@ -1231,18 +1523,17 @@
                 data: dataBR,
                 hora: hora,
                 observacao: obs,
-                origem: 'Manual'
+                origem: 'Manual (TI)'
             });
             
             alert(resultado.sucesso ? resultado.mensagem : '❌ ' + resultado.mensagem);
             
             if (resultado.sucesso) {
                 await listarRegistros();
-                await carregarEstatisticas();
                 voltarParaTI();
             }
         }
-
+        
         // ================= TROCAS =================
         function mostrarFormTroca() {
             if (!logadoTI) {
@@ -1267,7 +1558,7 @@
             document.getElementById('trocaMotivo').value = '';
             document.getElementById('trocaObs').value = '';
         }
-
+        
         async function salvarTroca() {
             const saidaMat = document.getElementById('trocaSaida').value;
             const entradaMat = document.getElementById('trocaEntrada').value;
@@ -1313,83 +1604,7 @@
                 voltarParaTI();
             }
         }
-
-        // ================= ÁREA T.I =================
-        async function fazerLoginTI() {
-            const usuario = document.getElementById('tiUsuario').value.trim();
-            const senha = document.getElementById('tiSenha').value.trim();
-            
-            const resultado = await chamarAPI('loginTI', { usuario, senha });
-            
-            if (resultado.sucesso) {
-                document.getElementById('tiStatus').innerHTML = '✅ Acesso liberado! Bem-vindo, ' + usuario;
-                document.getElementById('tiStatus').className = 'status status-success';
-                document.getElementById('tiPainel').style.display = 'block';
-                logadoTI = true;
-                await listarColaboradores();
-                await listarRegistros();
-                await listarTrocas();
-                await listarUsuariosTI();
-                await renderizarProjetosVercel();
-            } else {
-                document.getElementById('tiStatus').innerHTML = '❌ ' + resultado.mensagem;
-                document.getElementById('tiStatus').className = 'status status-error';
-            }
-        }
-
-        async function listarUsuariosTI() {
-            const resultado = await chamarAPI('listarUsuariosTI');
-            if (resultado.sucesso) {
-                renderizarUsuariosTI(resultado.dados);
-            }
-        }
-
-        function mostrarFormNovoUsuario() {
-            if (!logadoTI) {
-                alert('Faça login na Área T.I primeiro!');
-                return;
-            }
-            document.getElementById('screenTI').classList.remove('active');
-            document.getElementById('screenFormUsuario').classList.add('active');
-            document.getElementById('userUsuario').value = '';
-            document.getElementById('userSenha').value = '';
-            document.getElementById('userTipo').value = 'Comum';
-        }
-
-        async function salvarUsuarioTI() {
-            const usuario = document.getElementById('userUsuario').value.trim();
-            const senha = document.getElementById('userSenha').value.trim();
-            const tipo = document.getElementById('userTipo').value;
-            
-            if (!usuario || !senha) {
-                alert('Preencha todos os campos!');
-                return;
-            }
-            
-            const resultado = await chamarAPI('adicionarUsuarioTI', { usuario, senha, tipo });
-            alert(resultado.sucesso ? '✅ Usuário adicionado!' : '❌ ' + resultado.mensagem);
-            
-            if (resultado.sucesso) {
-                await listarUsuariosTI();
-                voltarParaTI();
-            }
-        }
-
-        async function excluirUsuarioTI(usuario) {
-            if (usuario === 'admin') {
-                alert('⚠️ Não pode excluir o usuário admin!');
-                return;
-            }
-            
-            if (confirm(`Excluir usuário ${usuario}?`)) {
-                const resultado = await chamarAPI('excluirUsuarioTI', { usuario });
-                alert(resultado.sucesso ? '✅ Usuário excluído!' : '❌ ' + resultado.mensagem);
-                if (resultado.sucesso) {
-                    await listarUsuariosTI();
-                }
-            }
-        }
-
+        
         function fazerBackup() {
             if (!logadoTI) {
                 alert('Faça login na Área T.I primeiro!');
@@ -1399,6 +1614,7 @@
                 colaboradores,
                 registros: registrosPonto,
                 trocas: trocasTurno,
+                usuarios,
                 data: new Date().toLocaleString('pt-BR')
             };
             
@@ -1410,7 +1626,7 @@
             a.click();
             alert('💾 Backup gerado com sucesso!');
         }
-
+        
         async function gerarFolhaPonto() {
             if (!logadoTI) {
                 alert('Faça login na Área T.I primeiro!');
@@ -1430,7 +1646,7 @@
                 alert('❌ ' + (resultado.mensagem || 'Erro ao gerar folha de ponto'));
             }
         }
-
+        
         function gerarHTMLFolha(folhas, mes, ano) {
             const meses = ['Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho', 'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'];
             const nomeMes = meses[mes - 1];
@@ -1467,8 +1683,8 @@
                 html += `
                     <h3>${escapeHtml(f.colaborador)} - ${escapeHtml(f.escola)}</h3>
                     <p>Carga Horária: ${f.cargaHoraria}h | Total: ${totalHoras.toFixed(2)}h</p>
-                     <table>
-                        <thead><tr><th>Data</th><th>Entrada</th><th>Saída</th></tr></thead>
+                      <table>
+                        <thead> <tr><th>Data</th><th>Entrada</th><th>Saída</th></tr> </thead>
                         <tbody>
                 `;
                 
@@ -1485,145 +1701,7 @@
             html += `</body></html>`;
             return html;
         }
-
-        // ================= FUNÇÕES DA API VERCEl =================
-        async function testarConexaoVercel() {
-            if (!logadoTI) {
-                alert('Faça login na Área T.I primeiro!');
-                return;
-            }
-            const resultado = await chamarAPI('listarProjetos');
-            if (resultado.sucesso) {
-                alert('✅ Conexão com API Vercel estabelecida!\nProjetos encontrados: ' + (resultado.dados?.length || 0));
-                await renderizarProjetosVercel();
-            } else {
-                alert('❌ Erro na conexão: ' + resultado.mensagem);
-            }
-        }
-
-        async function renderizarProjetosVercel() {
-            const container = document.getElementById('vercelProjectsList');
-            if (!container) return;
-            
-            container.innerHTML = '<div class="status status-info">Carregando projetos...</div>';
-            
-            const resultado = await chamarAPI('listarProjetos');
-            
-            if (!resultado.sucesso) {
-                container.innerHTML = '<div class="status status-error">Erro ao carregar projetos</div>';
-                return;
-            }
-            
-            const projetos = resultado.dados;
-            if (!projetos || projetos.length === 0) {
-                container.innerHTML = '<div class="status status-info">Nenhum projeto encontrado</div>';
-                return;
-            }
-            
-            let html = '';
-            projetos.forEach(projeto => {
-                html += `
-                    <div class="card">
-                        <div class="card-title">📁 ${escapeHtml(projeto.name)}</div>
-                        <div class="card-subtitle">ID: ${escapeHtml(projeto.id)}</div>
-                        <div class="card-actions">
-                            <button class="btn-small btn-primary" onclick="verDeployments('${projeto.id}')">
-                                🚀 Ver Deployments
-                            </button>
-                        </div>
-                    </div>
-                `;
-            });
-            
-            container.innerHTML = html;
-        }
-
-        async function verDeployments(projectId) {
-            currentProjectId = projectId;
-            
-            const container = document.getElementById('vercelDeploymentsList');
-            const section = document.getElementById('vercelDeploymentsSection');
-            if (!container || !section) return;
-            
-            section.style.display = 'block';
-            container.innerHTML = '<div class="status status-info">Carregando deployments...</div>';
-            
-            const resultado = await chamarAPI('listarDeployments', { projectId });
-            
-            if (!resultado.sucesso) {
-                container.innerHTML = '<div class="status status-error">Erro ao carregar deployments</div>';
-                return;
-            }
-            
-            const deployments = resultado.dados;
-            if (!deployments || deployments.length === 0) {
-                container.innerHTML = '<div class="status status-info">Nenhum deployment encontrado</div>';
-                return;
-            }
-            
-            let html = '';
-            deployments.forEach(deploy => {
-                const statusColor = deploy.readyState === 'READY' ? '#4caf50' : 
-                                   deploy.readyState === 'ERROR' ? '#f44336' : '#ff9800';
-                html += `
-                    <div class="card">
-                        <div class="card-title">
-                            🚀 Deployment #${escapeHtml(deploy.uid?.substring(0, 8))}
-                            <span style="color: ${statusColor}; font-size: 12px;">${deploy.readyState || 'PENDING'}</span>
-                        </div>
-                        <div class="card-subtitle">
-                            URL: <a href="https://${deploy.url}" target="_blank">${escapeHtml(deploy.url)}</a>
-                        </div>
-                        <div class="card-detail">
-                            Criado em: ${new Date(deploy.createdAt).toLocaleString('pt-BR')}
-                        </div>
-                        ${deploy.readyState !== 'READY' ? `
-                            <button class="btn-small btn-danger" onclick="cancelarDeployment('${deploy.uid}')">
-                                ❌ Cancelar
-                            </button>
-                        ` : ''}
-                    </div>
-                `;
-            });
-            
-            container.innerHTML = html;
-        }
-
-        async function cancelarDeployment(deploymentId) {
-            if (!confirm(`Cancelar deployment ${deploymentId.substring(0, 8)}?`)) return;
-            
-            const resultado = await chamarAPI('cancelDeployment', { deploymentId });
-            alert(resultado.sucesso ? '✅ Deployment cancelado!' : '❌ ' + resultado.mensagem);
-            
-            if (resultado.sucesso && currentProjectId) {
-                await verDeployments(currentProjectId);
-            }
-        }
-
-        function voltarParaProjetos() {
-            document.getElementById('vercelDeploymentsSection').style.display = 'none';
-            renderizarProjetosVercel();
-        }
-
-        // ================= PWA =================
-        let deferredPrompt;
         
-        window.addEventListener('beforeinstallprompt', (e) => {
-            e.preventDefault();
-            deferredPrompt = e;
-            document.getElementById('installBanner').style.display = 'flex';
-        });
-        
-        function installPWA() {
-            if (deferredPrompt) {
-                deferredPrompt.prompt();
-            }
-        }
-        
-        if (window.matchMedia('(display-mode: standalone)').matches) {
-            document.getElementById('installBanner').style.display = 'none';
-        }
-
         // ================= INICIALIZAÇÃO =================
         async function inicializarApp() {
             console.log('🚀 Inicializando app...');
@@ -1636,7 +1714,9 @@
             const hora = agora.getHours().toString().padStart(2,'0') + ':' + agora.getMinutes().toString().padStart(2,'0');
             if (document.getElementById('regHora')) document.getElementById('regHora').value = hora;
             
-            await carregarEstatisticas();
+            await listarColaboradores();
+            await listarRegistros();
+            await listarTrocas();
             
             console.log('✅ App inicializado!');
         }

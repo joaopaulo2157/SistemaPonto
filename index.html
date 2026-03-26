@@ -159,7 +159,7 @@
             font-weight: 600;
         }
         
-        .form-group input {
+        .form-group input, .form-group select, .form-group textarea {
             width: 100%;
             padding: 16px;
             border: 2px solid #e0e0e0;
@@ -169,7 +169,7 @@
             -webkit-appearance: none;
         }
         
-        .form-group input:focus {
+        .form-group input:focus, .form-group select:focus {
             border-color: #667eea;
             outline: none;
         }
@@ -340,16 +340,20 @@
         
         /* Footer fixo com link TI */
         .footer-fixo {
+            position: fixed;
+            bottom: 15px;
+            left: 0;
+            right: 0;
             text-align: center;
-            padding: 15px;
+            padding: 10px;
             background: transparent;
             color: rgba(255,255,255,0.9);
             font-size: 0.8rem;
-            margin-top: auto;
+            z-index: 100;
         }
         
         .footer-fixo p {
-            background: rgba(0,0,0,0.3);
+            background: rgba(0,0,0,0.5);
             display: inline-block;
             padding: 8px 20px;
             border-radius: 30px;
@@ -360,6 +364,7 @@
             color: white;
             text-decoration: none;
             font-weight: bold;
+            cursor: pointer;
         }
         
         .footer-fixo a:active {
@@ -399,7 +404,7 @@
     </div>
 
     <!-- Tela de Login -->
-    <div id="screenLogin" class="screen">
+    <div id="screenLogin" class="screen active">
         <div class="content">
             <div style="text-align: center; margin-bottom: 40px;">
                 <div class="logo" style="font-size: 4rem;">📱</div>
@@ -544,7 +549,7 @@
         </div>
     </div>
 
-    <!-- Tela: Área T.I (Restrita - apenas link no rodapé) -->
+    <!-- Tela: Área T.I (Restrita) -->
     <div id="screenTI" class="screen">
         <div class="header">
             <button class="btn-back" onclick="fecharTI()">←</button>
@@ -807,7 +812,7 @@
 
     <!-- Footer fixo com link da Área T.I -->
     <div class="footer-fixo">
-        <p>Desenvolvido por <a href="#" onclick="abrirAreaTI(); return false;">AlfaTech</a> - v5.0</p>
+        <p>Desenvolvido por <a onclick="abrirAreaTI(); return false;" style="cursor: pointer;">AlfaTech</a> - v5.0</p>
     </div>
 
     <script>
@@ -999,18 +1004,31 @@
         
         // ================= CÂMERA E RECONHECIMENTO AUTOMÁTICO =================
         function iniciarCamera() {
+            console.log('📷 Iniciando câmera...');
+            
             if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
                 navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user' } })
                     .then(function(mediaStream) {
+                        console.log('✅ Câmera iniciada com sucesso');
                         stream = mediaStream;
-                        document.getElementById('video').srcObject = mediaStream;
-                        iniciarReconhecimentoAutomatico();
+                        const videoElement = document.getElementById('video');
+                        videoElement.srcObject = mediaStream;
+                        videoElement.onloadedmetadata = function() {
+                            videoElement.play();
+                            iniciarReconhecimentoAutomatico();
+                        };
                     })
                     .catch(function(error) {
+                        console.error('❌ Erro ao acessar câmera:', error);
                         document.getElementById('cameraStatus').innerHTML = '❌ Erro ao acessar câmera. Use o registro manual.';
                         document.getElementById('cameraStatus').className = 'status status-error';
                         document.getElementById('manualSection').style.display = 'block';
                     });
+            } else {
+                console.error('❌ Navegador não suporta getUserMedia');
+                document.getElementById('cameraStatus').innerHTML = '❌ Seu navegador não suporta acesso à câmera. Use o registro manual.';
+                document.getElementById('cameraStatus').className = 'status status-error';
+                document.getElementById('manualSection').style.display = 'block';
             }
         }
         
@@ -1056,8 +1074,8 @@
             // Simular reconhecimento (em produção, comparar com hash salvo)
             if (usuarioLogado.hash && usuarioLogado.hash === hashAtual) {
                 registrarPontoAutomatico();
-            } else if (Math.random() > 0.7) {
-                // Simulação: 30% de chance de reconhecer
+            } else if (Math.random() > 0.6) {
+                // Simulação: 40% de chance de reconhecer após algumas tentativas
                 usuarioLogado.hash = hashAtual;
                 registrarPontoAutomatico();
             }
@@ -1275,12 +1293,15 @@
         
         // ================= ÁREA T.I =================
         function abrirAreaTI() {
+            console.log('🔐 Abrindo Área T.I');
+            // Fechar todas as telas abertas
             document.getElementById('screenLogin').classList.remove('active');
             document.getElementById('screenEscola').classList.remove('active');
             document.getElementById('screenCamera').classList.remove('active');
             document.getElementById('screenManual').classList.remove('active');
             document.getElementById('screenSucesso').classList.remove('active');
-            document.getElementById('screenMain').style.display = 'none';
+            document.getElementById('screenRecuperar').classList.remove('active');
+            // Abrir tela TI
             document.getElementById('screenTI').classList.add('active');
             document.getElementById('tiPainel').style.display = 'none';
             document.getElementById('tiStatus').innerHTML = '🔒 Acesso Restrito';
@@ -1683,8 +1704,10 @@
                 html += `
                     <h3>${escapeHtml(f.colaborador)} - ${escapeHtml(f.escola)}</h3>
                     <p>Carga Horária: ${f.cargaHoraria}h | Total: ${totalHoras.toFixed(2)}h</p>
-                      <table>
-                        <thead> <tr><th>Data</th><th>Entrada</th><th>Saída</th></tr> </thead>
+                       <table>
+                        <thead>
+                            <tr><th>Data</th><th>Entrada</th><th>Saída</th></tr>
+                        </thead>
                         <tbody>
                 `;
                 

@@ -87,7 +87,7 @@
             -webkit-overflow-scrolling: touch;
         }
         
-        /* Cards de Escola (seleção) */
+        /* Cards de Escola */
         .escola-card {
             background: #f8f9fa;
             border-radius: 20px;
@@ -454,6 +454,19 @@
             background: linear-gradient(135deg, #4facfe, #00f2fe);
             margin-top: 10px;
         }
+        
+        .user-info-card {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            border-radius: 20px;
+            padding: 15px;
+            margin-bottom: 20px;
+            text-align: center;
+            color: white;
+        }
+        
+        .user-info-card p {
+            margin: 5px 0;
+        }
     </style>
 </head>
 <body>
@@ -484,15 +497,14 @@
                 <input type="password" id="loginSenha" placeholder="Digite sua senha">
             </div>
             
-            <div class="form-group">
-                <label>Matrícula On Line</label>
-                <input type="text" id="loginMatricula" placeholder="Digite sua matrícula">
-            </div>
-            
             <button class="btn-primary" onclick="fazerLogin()">Login</button>
             
             <div class="link" onclick="mostrarRecuperarSenha()">Nova Senha</div>
             
+            <div class="version">
+                (C) 2010-2026 por Carcenter Informática<br>
+                v.2026.3.19.2
+            </div>
         </div>
     </div>
 
@@ -527,7 +539,7 @@
             <div style="text-align: center; margin-bottom: 30px;">
                 <div class="logo" style="font-size: 3rem;">🏫</div>
                 <h2 style="color: #333; margin-top: 10px;">Bem vindo, <span id="welcomeNome">Colaborador</span></h2>
-                <p style="color: #666;">Selecione a escola onde você trabalha</p>
+                <p style="color: #666;">Selecione a escola onde você vai bater o ponto</p>
             </div>
             
             <div id="escolasList">
@@ -543,9 +555,10 @@
             <div class="header-title">📸 Registrar Ponto</div>
         </div>
         <div class="content">
-            <div style="background: #f8f9fa; border-radius: 20px; padding: 15px; margin-bottom: 20px; text-align: center;">
+            <div class="user-info-card">
                 <p><strong>👤 Colaborador:</strong> <span id="cameraNome">Carregando...</span></p>
                 <p><strong>🏫 Escola:</strong> <span id="cameraEscola">Carregando...</span></p>
+                <p><strong>📅 Data:</strong> <span id="cameraData">Carregando...</span></p>
             </div>
             
             <div class="camera-container">
@@ -575,6 +588,11 @@
             <div class="header-title">📝 Registro Manual</div>
         </div>
         <div class="content">
+            <div class="user-info-card">
+                <p><strong>👤 Colaborador:</strong> <span id="manualNome">Carregando...</span></p>
+                <p><strong>🏫 Escola:</strong> <span id="manualEscola">Carregando...</span></p>
+            </div>
+            
             <div class="form-group">
                 <label>Tipo de Registro</label>
                 <select id="manualTipo">
@@ -785,12 +803,9 @@
                 <input type="password" id="colabSenha" placeholder="Digite a senha">
             </div>
             <div class="form-group">
-                <label>Matrícula *</label>
-                <input type="text" id="colabMatricula" placeholder="Digite a matrícula">
-            </div>
-            <div class="form-group">
-                <label>Escola *</label>
-                <select id="colabEscolaSelect"></select>
+                <label>Escolas que trabalha *</label>
+                <div id="colabEscolasCheckbox"></div>
+                <small style="color: #666;">Selecione todas as escolas onde este colaborador trabalha</small>
             </div>
             <div class="form-group">
                 <label>Cargo</label>
@@ -912,7 +927,7 @@
         // ================= CONFIGURAÇÃO =================
         const API_URL = 'https://sistema-ponto-seven.vercel.app/api/ponto';
         
-        // ================= LISTA DE ESCOLAS (GERENCIADA PELO ADMIN) =================
+        // ================= LISTA DE ESCOLAS =================
         let escolas = [
             { id: 1, nome: "CENTRO INFANTIL VEREADOR EVANDRO CARI", endereco: "", telefone: "" },
             { id: 2, nome: "EMEIF AUDALIO MACIANO DA SILVA", endereco: "", telefone: "" },
@@ -923,9 +938,15 @@
             { id: 7, nome: "EMEIF MANOEL VIEIRA GADI", endereco: "", telefone: "" }
         ];
         
-        // ================= USUÁRIOS CADASTRADOS =================
+        // ================= USUÁRIOS (COLABORADORES) =================
         let usuarios = [
-            { email: "joaopaulo2009@gmail.com", senha: "2026", matricula: "1001", nome: "João Paulo", escolaId: null, hash: null }
+            { 
+                email: "joaopaulo2009@gmail.com", 
+                senha: "2026", 
+                nome: "João Paulo", 
+                escolasIds: [1, 2, 3], // Trabalha em 3 escolas
+                hash: null 
+            }
         ];
         
         // ================= VARIÁVEIS GLOBAIS =================
@@ -965,46 +986,55 @@
         function fazerLogin() {
             const email = document.getElementById('loginEmail').value.trim();
             const senha = document.getElementById('loginSenha').value.trim();
-            const matricula = document.getElementById('loginMatricula').value.trim();
             
-            if (!email || !senha || !matricula) {
-                alert('Preencha todos os campos!');
+            if (!email || !senha) {
+                alert('Preencha email e senha!');
                 return;
             }
             
-            const usuario = usuarios.find(u => u.email === email && u.senha === senha && u.matricula === matricula);
+            const usuario = usuarios.find(u => u.email === email && u.senha === senha);
             
             if (!usuario) {
-                alert('❌ Email, senha ou matrícula incorretos!');
+                alert('❌ Email ou senha incorretos!');
                 return;
             }
             
             usuarioLogado = usuario;
             
-            if (usuario.escolaId) {
-                escolaSelecionada = escolas.find(e => e.id === usuario.escolaId);
+            // Mostrar apenas as escolas onde o colaborador trabalha
+            const escolasDoUsuario = escolas.filter(e => usuario.escolasIds.includes(e.id));
+            
+            if (escolasDoUsuario.length === 0) {
+                alert('❌ Você não está vinculado a nenhuma escola. Contate o administrador.');
+                return;
+            }
+            
+            if (escolasDoUsuario.length === 1) {
+                // Se tem apenas uma escola, seleciona automaticamente
+                escolaSelecionada = escolasDoUsuario[0];
                 iniciarPontoAutomatico();
             } else {
+                // Mostrar lista de escolas para escolher
                 document.getElementById('welcomeNome').textContent = usuario.nome;
-                carregarEscolasSelecao();
+                carregarEscolasUsuario(escolasDoUsuario);
                 document.getElementById('screenLogin').classList.remove('active');
                 document.getElementById('screenEscola').classList.add('active');
             }
         }
         
-        function carregarEscolasSelecao() {
+        function carregarEscolasUsuario(escolasDoUsuario) {
             const container = document.getElementById('escolasList');
-            if (escolas.length === 0) {
-                container.innerHTML = '<div class="status status-warning">Nenhuma escola cadastrada. Contate o administrador.</div>';
+            if (escolasDoUsuario.length === 0) {
+                container.innerHTML = '<div class="status status-warning">Nenhuma escola vinculada. Contate o administrador.</div>';
                 return;
             }
             
             let html = '';
-            escolas.forEach(escola => {
+            escolasDoUsuario.forEach(escola => {
                 html += `
                     <div class="escola-card" onclick="selecionarEscola(${escola.id})">
                         <h3>${escapeHtml(escola.nome)}</h3>
-                        <p>Clique para selecionar esta escola</p>
+                        <p>${escapeHtml(escola.endereco || 'Clique para selecionar esta escola')}</p>
                     </div>
                 `;
             });
@@ -1014,19 +1044,18 @@
         function selecionarEscola(escolaId) {
             escolaSelecionada = escolas.find(e => e.id === escolaId);
             if (escolaSelecionada) {
-                const index = usuarios.findIndex(u => u.email === usuarioLogado.email);
-                if (index !== -1) {
-                    usuarios[index].escolaId = escolaId;
-                    usuarioLogado.escolaId = escolaId;
-                }
                 iniciarPontoAutomatico();
             }
         }
         
         function iniciarPontoAutomatico() {
             document.getElementById('screenEscola').classList.remove('active');
+            
+            // Atualizar informações na tela da câmera
             document.getElementById('cameraNome').textContent = usuarioLogado.nome;
             document.getElementById('cameraEscola').textContent = escolaSelecionada.nome;
+            document.getElementById('cameraData').textContent = new Date().toLocaleDateString('pt-BR');
+            
             document.getElementById('manualSection').style.display = 'none';
             document.getElementById('cameraStatus').innerHTML = '🔍 Posicione o rosto no círculo para registro automático';
             document.getElementById('cameraStatus').className = 'status status-info';
@@ -1049,7 +1078,6 @@
             document.getElementById('screenLogin').classList.add('active');
             document.getElementById('loginEmail').value = '';
             document.getElementById('loginSenha').value = '';
-            document.getElementById('loginMatricula').value = '';
         }
         
         function voltarParaCamera() {
@@ -1064,6 +1092,8 @@
         function abrirRegistroManual() {
             pararCamera();
             document.getElementById('screenCamera').classList.remove('active');
+            document.getElementById('manualNome').textContent = usuarioLogado.nome;
+            document.getElementById('manualEscola').textContent = escolaSelecionada.nome;
             document.getElementById('screenManual').classList.add('active');
             document.getElementById('manualTipo').value = 'entrada';
             document.getElementById('manualObs').value = '';
@@ -1073,8 +1103,12 @@
             const tipo = document.getElementById('manualTipo').value;
             const observacao = document.getElementById('manualObs').value.trim();
             
+            // Buscar matrícula do colaborador (usar email como identificador)
+            const colaborador = colaboradores.find(c => c.email === usuarioLogado.email);
+            const matricula = colaborador?.matricula || usuarioLogado.email;
+            
             const dados = {
-                matricula: usuarioLogado.matricula,
+                matricula: matricula,
                 tipo: tipo,
                 observacao: observacao,
                 origem: 'Manual'
@@ -1184,14 +1218,16 @@
             if (scanInterval) clearInterval(scanInterval);
             
             const hoje = new Date().toLocaleDateString('pt-BR');
+            const matricula = usuarioLogado.email; // Usando email como identificador
+            
             const registroExistente = registrosPonto.find(r => 
-                r.matricula === usuarioLogado.matricula && r.data === hoje && !r.saida
+                r.matricula === matricula && r.data === hoje && !r.saida
             );
             
             let tipo = registroExistente ? 'saida' : 'entrada';
             
             const dados = {
-                matricula: usuarioLogado.matricula,
+                matricula: matricula,
                 tipo: tipo,
                 origem: 'Facial Automático'
             };
@@ -1316,12 +1352,16 @@
             
             let html = '';
             colaboradores.forEach(c => {
-                const escolaNome = escolas.find(e => e.nome === c.escola)?.nome || c.escola || '-';
+                const escolasNomes = c.escolasIds ? c.escolasIds.map(id => {
+                    const escola = escolas.find(e => e.id === id);
+                    return escola ? escola.nome : '';
+                }).filter(n => n).join(', ') : '-';
+                
                 html += `
                     <div class="card">
                         <div class="card-title">${escapeHtml(c.nome)}</div>
-                        <div class="card-subtitle">Mat: ${escapeHtml(c.matricula)} • ${escapeHtml(c.cargo || '-')}</div>
-                        <div class="card-detail">${escapeHtml(escolaNome)} • ${c.cargaHoraria || 160}h</div>
+                        <div class="card-subtitle">Email: ${escapeHtml(c.email)} • ${escapeHtml(c.cargo || '-')}</div>
+                        <div class="card-detail">Escolas: ${escapeHtml(escolasNomes)} • ${c.cargaHoraria || 160}h</div>
                         <div class="card-actions">
                             <button class="btn-small btn-primary" onclick="editarColaborador(${c.id})">✏️ Editar</button>
                             <button class="btn-small btn-danger" onclick="excluirColaborador(${c.id})">❌ Excluir</button>
@@ -1402,12 +1442,21 @@
         }
         
         function atualizarSelectsColaboradores() {
-            const selectEscola = document.getElementById('colabEscolaSelect');
-            if (selectEscola) {
-                selectEscola.innerHTML = '<option value="">Selecione a escola</option>';
+            // Preencher checkboxes de escolas no formulário de colaborador
+            const container = document.getElementById('colabEscolasCheckbox');
+            if (container) {
+                let html = '';
                 escolas.forEach(escola => {
-                    selectEscola.innerHTML += `<option value="${escapeHtml(escola.nome)}">${escapeHtml(escola.nome)}</option>`;
+                    html += `
+                        <div style="margin-bottom: 10px;">
+                            <label style="display: flex; align-items: center; gap: 10px;">
+                                <input type="checkbox" value="${escola.id}" class="escola-checkbox"> 
+                                <span>${escapeHtml(escola.nome)}</span>
+                            </label>
+                        </div>
+                    `;
                 });
+                container.innerHTML = html;
             }
             
             const selectSaida = document.getElementById('trocaSaida');
@@ -1416,8 +1465,8 @@
                 selectSaida.innerHTML = '<option value="">Selecione</option>';
                 selectEntrada.innerHTML = '<option value="">Selecione</option>';
                 colaboradores.forEach(c => {
-                    selectSaida.innerHTML += `<option value="${c.matricula}">${escapeHtml(c.nome)} - ${c.matricula}</option>`;
-                    selectEntrada.innerHTML += `<option value="${c.matricula}">${escapeHtml(c.nome)} - ${c.matricula}</option>`;
+                    selectSaida.innerHTML += `<option value="${c.email}">${escapeHtml(c.nome)} - ${c.email}</option>`;
+                    selectEntrada.innerHTML += `<option value="${c.email}">${escapeHtml(c.nome)} - ${c.email}</option>`;
                 });
             }
         }
@@ -1451,13 +1500,11 @@
         }
         
         function mostrarSecaoTI(secao) {
-            // Esconder todas as seções
             document.querySelectorAll('.ti-section').forEach(s => s.classList.remove('active'));
-            // Mostrar a seção selecionada
             const secaoElement = document.getElementById(`tiSecao${secao.charAt(0).toUpperCase() + secao.slice(1)}`);
             if (secaoElement) secaoElement.classList.add('active');
+            secaoAtualTI = secao;
             
-            // Carregar dados da seção
             if (secao === 'escolas') renderizarEscolasTI();
             if (secao === 'colaboradores') renderizarColaboradoresTI();
             if (secao === 'registros') renderizarRegistrosTI();
@@ -1560,16 +1607,18 @@
             escolaEditando = null;
             voltarParaTI();
             renderizarEscolasTI();
-            carregarEscolasSelecao();
             atualizarSelectsColaboradores();
         }
         
         function excluirEscola(id) {
             if (confirm('Tem certeza que deseja excluir esta escola?')) {
                 escolas = escolas.filter(e => e.id !== id);
+                // Remover escola dos usuários também
+                usuarios.forEach(u => {
+                    u.escolasIds = u.escolasIds.filter(eId => eId !== id);
+                });
                 alert('✅ Escola excluída!');
                 renderizarEscolasTI();
-                carregarEscolasSelecao();
                 atualizarSelectsColaboradores();
             }
         }
@@ -1589,7 +1638,6 @@
             document.getElementById('colabNome').value = '';
             document.getElementById('colabEmail').value = '';
             document.getElementById('colabSenha').value = '';
-            document.getElementById('colabMatricula').value = '';
             document.getElementById('colabCargo').value = '';
             document.getElementById('colabDepartamento').value = '';
             document.getElementById('colabCarga').value = '160';
@@ -1609,25 +1657,38 @@
             document.getElementById('colabNome').value = colab.nome || '';
             document.getElementById('colabEmail').value = colab.email || '';
             document.getElementById('colabSenha').value = colab.senha || '';
-            document.getElementById('colabMatricula').value = colab.matricula || '';
             document.getElementById('colabCargo').value = colab.cargo || '';
             document.getElementById('colabDepartamento').value = colab.departamento || '';
             document.getElementById('colabCarga').value = colab.cargaHoraria || '160';
+            
+            // Marcar checkboxes das escolas
+            const checkboxes = document.querySelectorAll('.escola-checkbox');
+            checkboxes.forEach(cb => {
+                const escolaId = parseInt(cb.value);
+                if (colab.escolasIds && colab.escolasIds.includes(escolaId)) {
+                    cb.checked = true;
+                }
+            });
+            
             colaboradorEditando = id;
+        }
+        
+        function obterEscolasSelecionadas() {
+            const checkboxes = document.querySelectorAll('.escola-checkbox:checked');
+            return Array.from(checkboxes).map(cb => parseInt(cb.value));
         }
         
         async function salvarColaborador() {
             const nome = document.getElementById('colabNome').value.trim();
             const email = document.getElementById('colabEmail').value.trim();
             const senha = document.getElementById('colabSenha').value.trim();
-            const matricula = document.getElementById('colabMatricula').value.trim();
-            const escola = document.getElementById('colabEscolaSelect').value;
             const cargo = document.getElementById('colabCargo').value.trim();
             const departamento = document.getElementById('colabDepartamento').value.trim();
             const cargaHoraria = document.getElementById('colabCarga').value;
+            const escolasIds = obterEscolasSelecionadas();
             
-            if (!nome || !email || !senha || !matricula || !escola) {
-                alert('Nome, email, senha, matrícula e escola são obrigatórios!');
+            if (!nome || !email || !senha || escolasIds.length === 0) {
+                alert('Nome, email, senha e pelo menos uma escola são obrigatórios!');
                 return;
             }
             
@@ -1635,21 +1696,24 @@
                 nome: nome,
                 email: email,
                 senha: senha,
-                matricula: matricula,
-                escola: escola,
+                escolasIds: escolasIds,
                 cargo: cargo,
                 departamento: departamento,
                 cargaHoraria: cargaHoraria
             };
             
-            if (!usuarios.some(u => u.email === email)) {
-                const escolaObj = escolas.find(e => e.nome === escola);
+            // Atualizar lista de usuários
+            const usuarioExistente = usuarios.find(u => u.email === email);
+            if (usuarioExistente) {
+                usuarioExistente.nome = nome;
+                usuarioExistente.senha = senha;
+                usuarioExistente.escolasIds = escolasIds;
+            } else {
                 usuarios.push({ 
                     email: email, 
                     senha: senha, 
-                    matricula: matricula, 
                     nome: nome, 
-                    escolaId: escolaObj?.id || null,
+                    escolasIds: escolasIds,
                     hash: null 
                 });
             }
@@ -1744,24 +1808,24 @@
         }
         
         async function salvarTroca() {
-            const saidaMat = document.getElementById('trocaSaida').value;
-            const entradaMat = document.getElementById('trocaEntrada').value;
+            const saidaEmail = document.getElementById('trocaSaida').value;
+            const entradaEmail = document.getElementById('trocaEntrada').value;
             const dataInput = document.getElementById('trocaData').value;
             const motivo = document.getElementById('trocaMotivo').value.trim();
             const obs = document.getElementById('trocaObs').value.trim();
             
-            if (!saidaMat || !entradaMat || !motivo) {
+            if (!saidaEmail || !entradaEmail || !motivo) {
                 alert('Preencha todos os campos obrigatórios!');
                 return;
             }
             
-            if (saidaMat === entradaMat) {
+            if (saidaEmail === entradaEmail) {
                 alert('Os colaboradores devem ser diferentes!');
                 return;
             }
             
-            const saida = colaboradores.find(c => c.matricula === saidaMat);
-            const entrada = colaboradores.find(c => c.matricula === entradaMat);
+            const saida = colaboradores.find(c => c.email === saidaEmail);
+            const entrada = colaboradores.find(c => c.email === entradaEmail);
             
             if (!saida || !entrada) {
                 alert('Colaborador não encontrado!');
@@ -1772,9 +1836,9 @@
             const dataBR = `${partes[2]}/${partes[1]}/${partes[0]}`;
             
             const resultado = await chamarAPI('registrarTroca', {
-                saidaMat: saidaMat,
+                saidaMat: saida.email,
                 saidaNome: saida.nome,
-                entradaMat: entradaMat,
+                entradaMat: entrada.email,
                 entradaNome: entrada.nome,
                 data: dataBR,
                 motivo: motivo,
@@ -1845,9 +1909,9 @@
             const backup = {
                 escolas,
                 colaboradores,
+                usuarios,
                 registros: registrosPonto,
                 trocas: trocasTurno,
-                usuarios,
                 data: new Date().toLocaleString('pt-BR')
             };
             

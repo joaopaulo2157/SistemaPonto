@@ -1,8 +1,11 @@
 // api/ponto.js
-// Sistema de Ponto Eletrônico - Backend com Vercel Postgres SDK
-// Versão Oficial - Usando @vercel/postgres
+// Sistema de Ponto Eletrônico - Backend com NeonDB REST API
+// Versão Oficial
 
-import { sql } from '@vercel/postgres';
+// ================= CONFIGURAÇÃO =================
+const NEON_API_URL = 'https://ep-proud-haze-acre4aei.apirest.sa-east-1.aws.neon.tech';
+const NEON_SCHEMA = 'neondb';
+const NEON_API_KEY = process.env.NEON_API_KEY; // Adicionar no Vercel
 
 // ================= FUNÇÕES AUXILIARES =================
 function setCorsHeaders(res) {
@@ -12,25 +15,69 @@ function setCorsHeaders(res) {
   res.setHeader('Access-Control-Max-Age', '86400');
 }
 
+// ================= FUNÇÃO PARA CHAMAR API REST =================
+async function neonQuery(endpoint, method = 'GET', body = null) {
+  const url = `${NEON_API_URL}/rest/v1/${endpoint}`;
+  
+  const headers = {
+    'Content-Type': 'application/json',
+    'apikey': NEON_API_KEY,
+    'Authorization': `Bearer ${NEON_API_KEY}`
+  };
+  
+  const options = {
+    method,
+    headers
+  };
+  
+  if (body && (method === 'POST' || method === 'PUT' || method === 'PATCH')) {
+    options.body = JSON.stringify(body);
+  }
+  
+  const response = await fetch(url, options);
+  
+  if (!response.ok) {
+    const error = await response.text();
+    throw new Error(`Erro ${response.status}: ${error}`);
+  }
+  
+  return await response.json();
+}
+
 // ================= INICIALIZAR TABELAS =================
 async function inicializarTabelas() {
-  console.log('📊 Criando tabelas no Vercel Postgres...');
+  console.log('📊 Verificando/Criando tabelas via Neon REST API...');
+  
+  // Como a API REST já tem as tabelas, apenas verificamos se existem
+  // Se não existirem, precisamos criar via SQL (será feito no Neon Dashboard)
   
   try {
-    // Tabela de Escolas
-    await sql`
-      CREATE TABLE IF NOT EXISTS escolas (
+    // Verificar se tabela escolas existe
+    const escolas = await neonQuery('escolas?limit=1');
+    console.log('✅ Tabela escolas acessível');
+    
+    // Verificar se tabela colaboradores existe
+    const colaboradores = await neonQuery('colaboradores?limit=1');
+    console.log('✅ Tabela colaboradores acessível');
+    
+    // Verificar se tabela registros_ponto existe
+    const registros = await neonQuery('registros_ponto?limit=1');
+    console.log('✅ Tabela registros_ponto acessível');
+    
+    return true;
+  } catch (error) {
+    console.error('❌ Erro ao acessar tabelas:', error.message);
+    console.log('⚠️ Se as tabelas não existirem, crie-as no Neon Dashboard:');
+    console.log(`
+      CREATE TABLE escolas (
         id SERIAL PRIMARY KEY,
         nome VARCHAR(255) NOT NULL,
         endereco TEXT,
         telefone VARCHAR(50),
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-      )
-    `;
-    
-    // Tabela de Colaboradores
-    await sql`
-      CREATE TABLE IF NOT EXISTS colaboradores (
+      );
+      
+      CREATE TABLE colaboradores (
         id SERIAL PRIMARY KEY,
         nome VARCHAR(255) NOT NULL,
         email VARCHAR(255) UNIQUE NOT NULL,
@@ -43,12 +90,9 @@ async function inicializarTabelas() {
         hash_facial TEXT,
         status VARCHAR(20) DEFAULT 'Ativo',
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-      )
-    `;
-    
-    // Tabela de Registros de Ponto
-    await sql`
-      CREATE TABLE IF NOT EXISTS registros_ponto (
+      );
+      
+      CREATE TABLE registros_ponto (
         id SERIAL PRIMARY KEY,
         colaborador_id INTEGER REFERENCES colaboradores(id),
         matricula VARCHAR(50),
@@ -60,12 +104,9 @@ async function inicializarTabelas() {
         tipo VARCHAR(50),
         observacao TEXT,
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-      )
-    `;
-    
-    // Tabela de Trocas de Turno
-    await sql`
-      CREATE TABLE IF NOT EXISTS trocas_turno (
+      );
+      
+      CREATE TABLE trocas_turno (
         id SERIAL PRIMARY KEY,
         colaborador_saida_id INTEGER REFERENCES colaboradores(id),
         colaborador_saida_nome VARCHAR(255),
@@ -76,62 +117,16 @@ async function inicializarTabelas() {
         observacao TEXT,
         status VARCHAR(20) DEFAULT 'Pendente',
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-      )
-    `;
-    
-    // Tabela de Usuários TI
-    await sql`
-      CREATE TABLE IF NOT EXISTS usuarios_ti (
+      );
+      
+      CREATE TABLE usuarios_ti (
         id SERIAL PRIMARY KEY,
         usuario VARCHAR(100) UNIQUE NOT NULL,
         senha VARCHAR(255) NOT NULL,
         tipo VARCHAR(50) DEFAULT 'Comum',
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-      )
-    `;
-    
-    console.log('✅ Tabelas criadas/verificadas!');
-    
-    // Inserir escolas padrão
-    const escolasCount = await sql`SELECT COUNT(*) FROM escolas`;
-    if (parseInt(escolasCount.rows[0].count) === 0) {
-      const escolasPadrao = [
-        'CENTRO INFANTIL VEREADOR EVANDRO CARI',
-        'EMEIF AUDALIO MACIANO DA SILVA',
-        'EMEIF FREI DAMIAO',
-        'EMEIF SANTA ANA',
-        'EMEIF JOAO VIEIRA GOMES',
-        'EMEIF PEDRO FRANCISCO DAS CHAGAS',
-        'EMEIF MANOEL VIEIRA GADI'
-      ];
-      for (const nome of escolasPadrao) {
-        await sql`INSERT INTO escolas (nome) VALUES (${nome})`;
-      }
-      console.log('✅ Escolas padrão inseridas');
-    }
-    
-    // Inserir usuário admin
-    const adminExistente = await sql`SELECT * FROM usuarios_ti WHERE usuario = 'admin'`;
-    if (adminExistente.rows.length === 0) {
-      await sql`INSERT INTO usuarios_ti (usuario, senha, tipo) VALUES ('admin', 'ti@2024', 'Master')`;
-      console.log('✅ Usuário admin criado');
-    }
-    
-    // Inserir colaborador padrão
-    const colaboradorExistente = await sql`SELECT * FROM colaboradores WHERE matricula = '1001'`;
-    if (colaboradorExistente.rows.length === 0) {
-      const escolaResult = await sql`SELECT id FROM escolas LIMIT 1`;
-      const escolaId = escolaResult.rows[0]?.id || 1;
-      await sql`
-        INSERT INTO colaboradores (nome, email, senha, matricula, cargo, escola_id)
-        VALUES ('João Paulo', 'joaopaulo2009@gmail.com', '2026', '1001', 'Professor', ${escolaId})
-      `;
-      console.log('✅ Colaborador padrão criado');
-    }
-    
-    return true;
-  } catch (error) {
-    console.error('❌ Erro ao criar tabelas:', error.message);
+      );
+    `);
     return false;
   }
 }
@@ -146,33 +141,33 @@ export default async function handler(req, res) {
     return res.status(200).end();
   }
 
-  // Inicializar tabelas
-  try {
-    await inicializarTabelas();
-  } catch (error) {
-    console.error('Erro ao inicializar banco:', error.message);
+  // Verificar se API Key está configurada
+  if (!NEON_API_KEY) {
     return res.status(500).json({ 
       sucesso: false, 
-      mensagem: 'Erro ao conectar com banco de dados',
-      detalhes: error.message
+      mensagem: 'NEON_API_KEY não configurada. Adicione nas variáveis de ambiente do Vercel.',
+      solucao: 'No Vercel Dashboard, adicione NEON_API_KEY com o valor da sua chave API do Neon'
     });
   }
+
+  // Inicializar tabelas
+  await inicializarTabelas();
 
   // GET para teste
   if (req.method === 'GET') {
     try {
-      const totalColab = await sql`SELECT COUNT(*) FROM colaboradores`;
+      const colaboradores = await neonQuery('colaboradores');
       const hoje = new Date().toISOString().split('T')[0];
-      const registrosHoje = await sql`SELECT COUNT(*) FROM registros_ponto WHERE data = ${hoje}`;
+      const registrosHoje = await neonQuery(`registros_ponto?data=eq.${hoje}`);
       
       return res.status(200).json({ 
         sucesso: true, 
         mensagem: '✅ API do Ponto Eletrônico está funcionando!',
-        versao: '3.0.0',
-        banco: 'Vercel Postgres',
+        versao: '4.0.0',
+        banco: 'NeonDB REST API',
         estatisticas: {
-          totalColaboradores: parseInt(totalColab.rows[0].count),
-          registrosHoje: parseInt(registrosHoje.rows[0].count)
+          totalColaboradores: colaboradores.length,
+          registrosHoje: registrosHoje.length
         }
       });
     } catch (error) {
@@ -197,61 +192,35 @@ export default async function handler(req, res) {
   try {
     // ================= ESCOLAS =================
     if (acao === 'listarEscolas') {
-      const result = await sql`SELECT * FROM escolas ORDER BY nome`;
-      return res.status(200).json({ sucesso: true, dados: result.rows });
+      const escolas = await neonQuery('escolas?order=nome.asc');
+      return res.status(200).json({ sucesso: true, dados: escolas });
     }
 
     if (acao === 'adicionarEscola') {
       const { nome, endereco, telefone } = body;
       if (!nome) return res.status(400).json({ sucesso: false, mensagem: 'Nome é obrigatório!' });
-      const result = await sql`
-        INSERT INTO escolas (nome, endereco, telefone) 
-        VALUES (${nome}, ${endereco || ''}, ${telefone || ''}) 
-        RETURNING *
-      `;
-      return res.status(200).json({ sucesso: true, mensagem: '✅ Escola adicionada!', dados: result.rows[0] });
+      const novaEscola = await neonQuery('escolas', 'POST', { nome, endereco: endereco || '', telefone: telefone || '' });
+      return res.status(200).json({ sucesso: true, mensagem: '✅ Escola adicionada!', dados: novaEscola[0] });
     }
 
     if (acao === 'editarEscola') {
       const { id, nome, endereco, telefone } = body;
-      const result = await sql`
-        UPDATE escolas 
-        SET nome = ${nome}, endereco = ${endereco || ''}, telefone = ${telefone || ''}
-        WHERE id = ${id} 
-        RETURNING *
-      `;
-      if (result.rows.length === 0) return res.status(404).json({ sucesso: false, mensagem: 'Escola não encontrada!' });
+      const escolaAtualizada = await neonQuery(`escolas?id=eq.${id}`, 'PATCH', { nome, endereco, telefone });
+      if (escolaAtualizada.length === 0) return res.status(404).json({ sucesso: false, mensagem: 'Escola não encontrada!' });
       return res.status(200).json({ sucesso: true, mensagem: '✅ Escola editada!' });
     }
 
     if (acao === 'excluirEscola') {
       const { id } = body;
-      await sql`DELETE FROM escolas WHERE id = ${id}`;
+      await neonQuery(`escolas?id=eq.${id}`, 'DELETE');
       return res.status(200).json({ sucesso: true, mensagem: '✅ Escola excluída!' });
     }
 
     // ================= COLABORADORES =================
     if (acao === 'listarColaboradores') {
-      const result = await sql`
-        SELECT c.*, e.nome as escola_nome 
-        FROM colaboradores c 
-        LEFT JOIN escolas e ON c.escola_id = e.id 
-        ORDER BY c.nome
-      `;
-      const colaboradores = result.rows.map(c => ({
-        id: c.id,
-        nome: c.nome,
-        email: c.email,
-        senha: c.senha,
-        matricula: c.matricula,
-        cargo: c.cargo,
-        departamento: c.departamento,
-        escola: c.escola_nome,
-        escolaId: c.escola_id,
-        cargaHoraria: c.carga_horaria,
-        hashFacial: c.hash_facial,
-        status: c.status
-      }));
+      const colaboradores = await neonQuery(`
+        colaboradores?select=*,escolas(nome)&order=nome.asc
+      `);
       return res.status(200).json({ sucesso: true, dados: colaboradores });
     }
 
@@ -262,132 +231,131 @@ export default async function handler(req, res) {
         return res.status(400).json({ sucesso: false, mensagem: 'Preencha todos os campos obrigatórios!' });
       }
       
-      const escolaResult = await sql`SELECT id FROM escolas WHERE nome = ${escola}`;
-      if (escolaResult.rows.length === 0) {
+      // Buscar ID da escola
+      const escolas = await neonQuery(`escolas?nome=eq.${encodeURIComponent(escola)}`);
+      if (escolas.length === 0) {
         return res.status(400).json({ sucesso: false, mensagem: 'Escola não encontrada!' });
       }
-      const escolaId = escolaResult.rows[0].id;
+      const escolaId = escolas[0].id;
       
-      const matriculaExistente = await sql`SELECT * FROM colaboradores WHERE matricula = ${matricula}`;
-      if (matriculaExistente.rows.length > 0) {
+      // Verificar duplicados
+      const matriculaExistente = await neonQuery(`colaboradores?matricula=eq.${matricula}`);
+      if (matriculaExistente.length > 0) {
         return res.status(400).json({ sucesso: false, mensagem: '❌ Matrícula já existe!' });
       }
       
-      const emailExistente = await sql`SELECT * FROM colaboradores WHERE email = ${email}`;
-      if (emailExistente.rows.length > 0) {
+      const emailExistente = await neonQuery(`colaboradores?email=eq.${email}`);
+      if (emailExistente.length > 0) {
         return res.status(400).json({ sucesso: false, mensagem: '❌ Email já existe!' });
       }
       
-      const result = await sql`
-        INSERT INTO colaboradores (nome, email, senha, matricula, cargo, departamento, escola_id, carga_horaria)
-        VALUES (${nome}, ${email}, ${senha}, ${matricula}, ${cargo || ''}, ${departamento || ''}, ${escolaId}, ${cargaHoraria || 160})
-        RETURNING *
-      `;
+      const novoColaborador = await neonQuery('colaboradores', 'POST', {
+        nome, email, senha, matricula,
+        cargo: cargo || '',
+        departamento: departamento || '',
+        escola_id: escolaId,
+        carga_horaria: cargaHoraria || 160
+      });
       
-      return res.status(200).json({ sucesso: true, mensagem: '✅ Colaborador adicionado!', dados: result.rows[0] });
+      return res.status(200).json({ sucesso: true, mensagem: '✅ Colaborador adicionado!', dados: novoColaborador[0] });
     }
 
     if (acao === 'editarColaborador') {
       const { id, dadosColab } = body;
       const { nome, email, senha, matricula, cargo, departamento, escola, cargaHoraria } = dadosColab;
       
-      const escolaResult = await sql`SELECT id FROM escolas WHERE nome = ${escola}`;
+      // Buscar ID da escola
       let escolaId = null;
-      if (escolaResult.rows.length > 0) escolaId = escolaResult.rows[0].id;
+      if (escola) {
+        const escolas = await neonQuery(`escolas?nome=eq.${encodeURIComponent(escola)}`);
+        if (escolas.length > 0) escolaId = escolas[0].id;
+      }
       
-      const matriculaExistente = await sql`
-        SELECT * FROM colaboradores WHERE matricula = ${matricula} AND id != ${id}
-      `;
-      if (matriculaExistente.rows.length > 0) {
+      // Verificar duplicados
+      const matriculaExistente = await neonQuery(`colaboradores?matricula=eq.${matricula}&id=neq.${id}`);
+      if (matriculaExistente.length > 0) {
         return res.status(400).json({ sucesso: false, mensagem: '❌ Matrícula já existe para outro colaborador!' });
       }
       
-      const emailExistente = await sql`
-        SELECT * FROM colaboradores WHERE email = ${email} AND id != ${id}
-      `;
-      if (emailExistente.rows.length > 0) {
+      const emailExistente = await neonQuery(`colaboradores?email=eq.${email}&id=neq.${id}`);
+      if (emailExistente.length > 0) {
         return res.status(400).json({ sucesso: false, mensagem: '❌ Email já existe para outro colaborador!' });
       }
       
-      const result = await sql`
-        UPDATE colaboradores 
-        SET nome = ${nome}, email = ${email}, senha = ${senha}, matricula = ${matricula}, 
-            cargo = ${cargo || ''}, departamento = ${departamento || ''}, 
-            escola_id = ${escolaId}, carga_horaria = ${cargaHoraria || 160}
-        WHERE id = ${id}
-        RETURNING *
-      `;
+      await neonQuery(`colaboradores?id=eq.${id}`, 'PATCH', {
+        nome, email, senha, matricula,
+        cargo: cargo || '',
+        departamento: departamento || '',
+        escola_id: escolaId,
+        carga_horaria: cargaHoraria || 160
+      });
       
-      if (result.rows.length === 0) return res.status(404).json({ sucesso: false, mensagem: 'Colaborador não encontrado!' });
       return res.status(200).json({ sucesso: true, mensagem: '✅ Colaborador editado!' });
     }
 
     if (acao === 'excluirColaborador') {
       const { id } = body;
-      await sql`DELETE FROM colaboradores WHERE id = ${id}`;
+      await neonQuery(`colaboradores?id=eq.${id}`, 'DELETE');
       return res.status(200).json({ sucesso: true, mensagem: '✅ Colaborador excluído!' });
     }
 
     if (acao === 'loginColaborador') {
       const { email, senha } = body;
-      const result = await sql`
-        SELECT c.*, e.nome as escola_nome 
-        FROM colaboradores c 
-        LEFT JOIN escolas e ON c.escola_id = e.id 
-        WHERE c.email = ${email} AND c.senha = ${senha} AND c.status = 'Ativo'
-      `;
+      const colaboradores = await neonQuery(`
+        colaboradores?email=eq.${email}&senha=eq.${senha}&status=eq.Ativo&select=*,escolas(nome)
+      `);
       
-      if (result.rows.length === 0) {
+      if (colaboradores.length === 0) {
         return res.status(401).json({ sucesso: false, mensagem: '❌ Email ou senha incorretos!' });
       }
       
-      return res.status(200).json({ sucesso: true, dados: result.rows[0] });
+      return res.status(200).json({ sucesso: true, dados: colaboradores[0] });
     }
 
     // ================= REGISTROS =================
     if (acao === 'listarRegistros') {
-      const result = await sql`
-        SELECT * FROM registros_ponto 
-        ORDER BY data DESC, entrada DESC 
-        LIMIT 100
-      `;
-      return res.status(200).json({ sucesso: true, dados: result.rows });
+      const registros = await neonQuery('registros_ponto?order=data.desc,entrada.desc&limit=100');
+      return res.status(200).json({ sucesso: true, dados: registros });
     }
 
     if (acao === 'registrarPonto') {
       const { matricula, tipo, observacao, data, hora, origem } = body;
       
-      const colabResult = await sql`SELECT * FROM colaboradores WHERE matricula = ${matricula}`;
-      if (colabResult.rows.length === 0) return res.status(404).json({ sucesso: false, mensagem: 'Colaborador não encontrado!' });
-      const colaborador = colabResult.rows[0];
+      const colaboradores = await neonQuery(`colaboradores?matricula=eq.${matricula}`);
+      if (colaboradores.length === 0) return res.status(404).json({ sucesso: false, mensagem: 'Colaborador não encontrado!' });
+      const colaborador = colaboradores[0];
       
       let escolaNome = '';
       if (colaborador.escola_id) {
-        const escolaResult = await sql`SELECT nome FROM escolas WHERE id = ${colaborador.escola_id}`;
-        if (escolaResult.rows.length > 0) escolaNome = escolaResult.rows[0].nome;
+        const escolas = await neonQuery(`escolas?id=eq.${colaborador.escola_id}`);
+        if (escolas.length > 0) escolaNome = escolas[0].nome;
       }
       
       const hoje = data || new Date().toISOString().split('T')[0];
       const horaAtual = hora || new Date().toLocaleTimeString('pt-BR');
       
-      const registroExistente = await sql`
-        SELECT * FROM registros_ponto 
-        WHERE matricula = ${matricula} AND data = ${hoje} AND saida IS NULL
-      `;
+      const registrosAbertos = await neonQuery(`
+        registros_ponto?matricula=eq.${matricula}&data=eq.${hoje}&saida=is.null
+      `);
       
-      if (tipo === 'saida' && registroExistente.rows.length > 0) {
-        await sql`
-          UPDATE registros_ponto 
-          SET saida = ${horaAtual}, observacao = ${observacao || ''}
-          WHERE id = ${registroExistente.rows[0].id}
-        `;
+      if (tipo === 'saida' && registrosAbertos.length > 0) {
+        await neonQuery(`registros_ponto?id=eq.${registrosAbertos[0].id}`, 'PATCH', {
+          saida: horaAtual,
+          observacao: observacao || ''
+        });
         return res.status(200).json({ sucesso: true, mensagem: '✅ Saída registrada!', tipo: 'saida' });
       } 
-      else if (tipo === 'entrada' && registroExistente.rows.length === 0) {
-        await sql`
-          INSERT INTO registros_ponto (colaborador_id, matricula, nome, escola, data, entrada, tipo, observacao)
-          VALUES (${colaborador.id}, ${matricula}, ${colaborador.nome}, ${escolaNome}, ${hoje}, ${horaAtual}, ${origem || 'Facial'}, ${observacao || ''})
-        `;
+      else if (tipo === 'entrada' && registrosAbertos.length === 0) {
+        await neonQuery('registros_ponto', 'POST', {
+          colaborador_id: colaborador.id,
+          matricula,
+          nome: colaborador.nome,
+          escola: escolaNome,
+          data: hoje,
+          entrada: horaAtual,
+          tipo: origem || 'Facial',
+          observacao: observacao || ''
+        });
         return res.status(200).json({ sucesso: true, mensagem: '✅ Entrada registrada!', tipo: 'entrada' });
       }
       
@@ -397,14 +365,14 @@ export default async function handler(req, res) {
     // ================= BIOMETRIA =================
     if (acao === 'verificarBiometria') {
       const { hash } = body;
-      const result = await sql`SELECT * FROM colaboradores WHERE hash_facial = ${hash}`;
-      if (result.rows.length > 0) {
+      const colaboradores = await neonQuery(`colaboradores?hash_facial=eq.${hash}`);
+      if (colaboradores.length > 0) {
         return res.status(200).json({ 
           sucesso: true, 
           colaborador: { 
-            matricula: result.rows[0].matricula, 
-            nome: result.rows[0].nome, 
-            id: result.rows[0].id 
+            matricula: colaboradores[0].matricula, 
+            nome: colaboradores[0].nome, 
+            id: colaboradores[0].id 
           }
         });
       }
@@ -413,30 +381,31 @@ export default async function handler(req, res) {
 
     if (acao === 'cadastrarBiometria') {
       const { matricula, hash } = body;
-      await sql`UPDATE colaboradores SET hash_facial = ${hash} WHERE matricula = ${matricula}`;
+      await neonQuery(`colaboradores?matricula=eq.${matricula}`, 'PATCH', { hash_facial: hash });
       return res.status(200).json({ sucesso: true, mensagem: '✅ Biometria cadastrada!' });
     }
 
     // ================= TROCAS =================
     if (acao === 'listarTrocas') {
-      const result = await sql`
-        SELECT * FROM trocas_turno 
-        ORDER BY data DESC 
-        LIMIT 50
-      `;
-      return res.status(200).json({ sucesso: true, dados: result.rows });
+      const trocas = await neonQuery('trocas_turno?order=data.desc&limit=50');
+      return res.status(200).json({ sucesso: true, dados: trocas });
     }
 
     if (acao === 'registrarTroca') {
       const { saidaMat, saidaNome, entradaMat, entradaNome, data, motivo, observacao } = body;
       
-      const saidaResult = await sql`SELECT id FROM colaboradores WHERE matricula = ${saidaMat}`;
-      const entradaResult = await sql`SELECT id FROM colaboradores WHERE matricula = ${entradaMat}`;
+      const saidaResult = await neonQuery(`colaboradores?matricula=eq.${saidaMat}`);
+      const entradaResult = await neonQuery(`colaboradores?matricula=eq.${entradaMat}`);
       
-      await sql`
-        INSERT INTO trocas_turno (colaborador_saida_id, colaborador_saida_nome, colaborador_entrada_id, colaborador_entrada_nome, data, motivo, observacao)
-        VALUES (${saidaResult.rows[0]?.id}, ${saidaNome}, ${entradaResult.rows[0]?.id}, ${entradaNome}, ${data}, ${motivo}, ${observacao || ''})
-      `;
+      await neonQuery('trocas_turno', 'POST', {
+        colaborador_saida_id: saidaResult[0]?.id,
+        colaborador_saida_nome: saidaNome,
+        colaborador_entrada_id: entradaResult[0]?.id,
+        colaborador_entrada_nome: entradaNome,
+        data,
+        motivo,
+        observacao: observacao || ''
+      });
       
       return res.status(200).json({ sucesso: true, mensagem: '🔄 Troca registrada!' });
     }
@@ -444,70 +413,54 @@ export default async function handler(req, res) {
     // ================= USUÁRIOS TI =================
     if (acao === 'loginTI') {
       const { usuario, senha } = body;
-      const result = await sql`
-        SELECT * FROM usuarios_ti 
-        WHERE usuario = ${usuario} AND senha = ${senha}
-      `;
-      if (result.rows.length > 0) {
-        return res.status(200).json({ 
-          sucesso: true, 
-          tipo: result.rows[0].tipo, 
-          mensagem: '✅ Login realizado!' 
-        });
+      const usuarios = await neonQuery(`usuarios_ti?usuario=eq.${usuario}&senha=eq.${senha}`);
+      if (usuarios.length > 0) {
+        return res.status(200).json({ sucesso: true, tipo: usuarios[0].tipo, mensagem: '✅ Login realizado!' });
       }
       return res.status(401).json({ sucesso: false, mensagem: '❌ Usuário ou senha incorretos!' });
     }
 
     if (acao === 'listarUsuariosTI') {
-      const result = await sql`SELECT id, usuario, tipo FROM usuarios_ti`;
-      return res.status(200).json({ sucesso: true, dados: result.rows });
+      const usuarios = await neonQuery('usuarios_ti?select=id,usuario,tipo');
+      return res.status(200).json({ sucesso: true, dados: usuarios });
     }
 
     if (acao === 'adicionarUsuarioTI') {
       const { usuario, senha, tipo } = body;
-      const existente = await sql`SELECT * FROM usuarios_ti WHERE usuario = ${usuario}`;
-      if (existente.rows.length > 0) {
-        return res.status(400).json({ sucesso: false, mensagem: 'Usuário já existe!' });
-      }
-      await sql`
-        INSERT INTO usuarios_ti (usuario, senha, tipo) 
-        VALUES (${usuario}, ${senha}, ${tipo || 'Comum'})
-      `;
+      const existente = await neonQuery(`usuarios_ti?usuario=eq.${usuario}`);
+      if (existente.length > 0) return res.status(400).json({ sucesso: false, mensagem: 'Usuário já existe!' });
+      await neonQuery('usuarios_ti', 'POST', { usuario, senha, tipo: tipo || 'Comum' });
       return res.status(200).json({ sucesso: true, mensagem: '✅ Usuário adicionado!' });
     }
 
     if (acao === 'excluirUsuarioTI') {
       const { usuario } = body;
-      if (usuario === 'admin') {
-        return res.status(400).json({ sucesso: false, mensagem: '⚠️ Não pode excluir o admin!' });
-      }
-      await sql`DELETE FROM usuarios_ti WHERE usuario = ${usuario}`;
+      if (usuario === 'admin') return res.status(400).json({ sucesso: false, mensagem: '⚠️ Não pode excluir o admin!' });
+      await neonQuery(`usuarios_ti?usuario=eq.${usuario}`, 'DELETE');
       return res.status(200).json({ sucesso: true, mensagem: '✅ Usuário excluído!' });
     }
 
     // ================= ESTATÍSTICAS =================
     if (acao === 'estatisticas') {
-      const totalColab = await sql`SELECT COUNT(*) FROM colaboradores`;
+      const colaboradores = await neonQuery('colaboradores');
       const hoje = new Date().toISOString().split('T')[0];
-      const registrosHoje = await sql`SELECT COUNT(*) FROM registros_ponto WHERE data = ${hoje}`;
+      const registrosHoje = await neonQuery(`registros_ponto?data=eq.${hoje}`);
       return res.status(200).json({
         sucesso: true,
-        totalColaboradores: parseInt(totalColab.rows[0].count),
-        registrosHoje: parseInt(registrosHoje.rows[0].count)
+        totalColaboradores: colaboradores.length,
+        registrosHoje: registrosHoje.length
       });
     }
 
     // ================= FOLHA DE PONTO =================
     if (acao === 'gerarFolhaPonto') {
       const { mes, ano } = body;
-      const result = await sql`
-        SELECT * FROM registros_ponto 
-        WHERE EXTRACT(MONTH FROM data) = ${mes} AND EXTRACT(YEAR FROM data) = ${ano}
-        ORDER BY nome, data
-      `;
+      const registros = await neonQuery(`
+        registros_ponto?data=gte.${ano}-${mes}-01&data=lt.${ano}-${parseInt(mes)+1}-01&order=nome.asc,data.asc
+      `);
       
       const folhas = {};
-      result.rows.forEach(r => {
+      registros.forEach(r => {
         if (!folhas[r.matricula]) {
           folhas[r.matricula] = {
             colaborador: r.nome,

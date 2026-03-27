@@ -2,7 +2,7 @@
   "name": "ponto-app",
   "version": "1.0.0",
   "description": "Sistema de Ponto Eletrônico",
-  "main": "index.js",
+  "type": "module",
   "engines": {
     "node": "20.x"
   },
